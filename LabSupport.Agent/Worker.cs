@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using LabSupport.Agent.Services;
+using LabSupport.Shared.Services;
 
 namespace LabSupport.Agent;
 

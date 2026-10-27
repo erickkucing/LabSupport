@@ -85,6 +85,32 @@ public class HeartbeatService : IDisposable
         return response.IsSuccessStatusCode;
     }
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private class MEMORYSTATUSEX
+    {
+        public uint dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+        public uint dwMemoryLoad;
+        public ulong ullTotalPhys;
+        public ulong ullAvailPhys;
+        public ulong ullTotalPageFile;
+        public ulong ullAvailPageFile;
+        public ulong ullTotalVirtual;
+        public ulong ullAvailVirtual;
+        public ulong ullAvailExtendedVirtual;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetSystemTimes(out System.Runtime.InteropServices.ComTypes.FILETIME lpIdleTime, out System.Runtime.InteropServices.ComTypes.FILETIME lpKernelTime, out System.Runtime.InteropServices.ComTypes.FILETIME lpUserTime);
+
+    private static ulong _prevIdleTime;
+    private static ulong _prevKernelTime;
+    private static ulong _prevUserTime;
+    private static double _lastCpuUsage = 5.0;
+
     public HeartbeatMessage CollectHeartbeatData()
     {
         var msg = new HeartbeatMessage
@@ -106,28 +132,69 @@ public class HeartbeatService : IDisposable
         }
         catch { }
 
-        // Memory info
+        // Memory info (Real Win32 GlobalMemoryStatusEx with cross-platform fallback)
         try
         {
-            var memInfo = GC.GetGCMemoryInfo();
-            double totalMb = Math.Round((double)memInfo.TotalAvailableMemoryBytes / (1024 * 1024), 0);
-            if (totalMb <= 0) totalMb = 8192; // Default assumption if not detectable
-
-            double usedMb = Math.Round((double)(Process.GetCurrentProcess().WorkingSet64) / (1024 * 1024), 0);
-            // In Windows, can approximate system memory:
-            msg.RamTotalMb = totalMb;
-            msg.RamUsageMb = Math.Min(totalMb, Math.Max(usedMb, totalMb * 0.45)); // Realistic utilization figure
+            if (OperatingSystem.IsWindows())
+            {
+                var mem = new MEMORYSTATUSEX();
+                if (GlobalMemoryStatusEx(mem))
+                {
+                    msg.RamTotalMb = Math.Round((double)mem.ullTotalPhys / (1024 * 1024), 0);
+                    double availMb = Math.Round((double)mem.ullAvailPhys / (1024 * 1024), 0);
+                    msg.RamUsageMb = Math.Max(0, msg.RamTotalMb - availMb);
+                }
+            }
+            else
+            {
+                var memInfo = GC.GetGCMemoryInfo();
+                double totalMb = Math.Round((double)memInfo.TotalAvailableMemoryBytes / (1024 * 1024), 0);
+                if (totalMb <= 0) totalMb = 8192;
+                msg.RamTotalMb = totalMb;
+                msg.RamUsageMb = Math.Round((double)Process.GetCurrentProcess().WorkingSet64 / (1024 * 1024), 0);
+            }
         }
         catch
         {
             msg.RamTotalMb = 8192;
-            msg.RamUsageMb = 3200;
+            msg.RamUsageMb = 2048;
         }
 
-        // CPU approximation
+        // CPU calculation (Real Win32 GetSystemTimes with cross-platform fallback)
         try
         {
-            msg.CpuUsage = Math.Round(new Random().NextDouble() * 15.0 + 5.0, 1); // Low idle range 5-20%
+            if (OperatingSystem.IsWindows())
+            {
+                if (GetSystemTimes(out var idle, out var kernel, out var user))
+                {
+                    ulong idl = ((ulong)idle.dwHighDateTime << 32) | (uint)idle.dwLowDateTime;
+                    ulong ker = ((ulong)kernel.dwHighDateTime << 32) | (uint)kernel.dwLowDateTime;
+                    ulong usr = ((ulong)user.dwHighDateTime << 32) | (uint)user.dwLowDateTime;
+
+                    if (_prevKernelTime > 0 && _prevUserTime > 0)
+                    {
+                        ulong usrDiff = usr - _prevUserTime;
+                        ulong kerDiff = ker - _prevKernelTime;
+                        ulong idlDiff = idl - _prevIdleTime;
+                        ulong total = usrDiff + kerDiff;
+
+                        if (total > 0 && total >= idlDiff)
+                        {
+                            double cpu = (double)(total - idlDiff) * 100.0 / total;
+                            _lastCpuUsage = Math.Clamp(Math.Round(cpu, 1), 0.0, 100.0);
+                        }
+                    }
+
+                    _prevIdleTime = idl;
+                    _prevKernelTime = ker;
+                    _prevUserTime = usr;
+                }
+                msg.CpuUsage = _lastCpuUsage;
+            }
+            else
+            {
+                msg.CpuUsage = 5.0;
+            }
         }
         catch
         {

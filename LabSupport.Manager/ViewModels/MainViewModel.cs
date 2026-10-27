@@ -54,7 +54,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         WolService = new WolService(DatabaseService);
         HttpFileServer = new HttpFileServer(8080);
 
-        DashboardVM = new DashboardViewModel(DatabaseService, CommandService, WolService);
+        DashboardVM = new DashboardViewModel(DatabaseService, CommandService, WolService, HttpFileServer);
         ScriptVM = new ScriptViewModel(CommandService, DatabaseService, DashboardVM.Computers);
         RemoteVM = new RemoteViewModel(CommandService);
         GenerateAgentVM = new GenerateAgentViewModel();

@@ -26,6 +26,9 @@ public class ScriptGeneratorTests
         Assert.Contains("New-Service -Name $ServiceName", script);
         Assert.Contains("Start-Service -Name $ServiceName", script);
         Assert.Contains("-StartupType Automatic", script);
+        Assert.Contains("schtasks.exe /create", script);
+        Assert.Contains("netsh advfirewall firewall add rule", script);
+        Assert.Contains("5901,5902", script);
         Assert.Contains("exit 1", script);
     }
 

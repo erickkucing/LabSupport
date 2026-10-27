@@ -13,7 +13,14 @@ public enum CommandType
     ShowMessage,
     ExecuteScript,
     KillProcess,
-    GetProcessList
+    GetProcessList,
+    MouseEvent,
+    KeyboardEvent,
+    UploadFile,
+    DownloadFile,
+    GetFileList,
+    StartBroadcast,
+    StopBroadcast
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -65,4 +72,64 @@ public class ProcessInfoItem
     public int Pid { get; set; }
     public string ProcessName { get; set; } = string.Empty;
     public double MemoryMb { get; set; }
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum MouseAction
+{
+    Move,
+    LeftDown,
+    LeftUp,
+    LeftClick,
+    RightDown,
+    RightUp,
+    RightClick,
+    DoubleClick,
+    MiddleClick,
+    Scroll
+}
+
+public class MouseInputPayload
+{
+    public MouseAction Action { get; set; } = MouseAction.LeftClick;
+    public double NormalizedX { get; set; } // 0.0 to 1.0 relative to target screen
+    public double NormalizedY { get; set; } // 0.0 to 1.0 relative to target screen
+    public int WheelDelta { get; set; }
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum KeyboardAction
+{
+    Text,
+    Shortcut,
+    KeyDown,
+    KeyUp
+}
+
+public class KeyboardInputPayload
+{
+    public KeyboardAction Action { get; set; } = KeyboardAction.Text;
+    public string? Text { get; set; }
+    public string? Key { get; set; } // e.g. "Win+D", "Alt+F4", "Ctrl+Shift+Esc"
+}
+
+public class FileTransferPayload
+{
+    public string FileName { get; set; } = string.Empty;
+    public string? TargetDirectory { get; set; }
+    public string ContentBase64 { get; set; } = string.Empty;
+}
+
+public class FileListPayload
+{
+    public string? DirectoryPath { get; set; }
+}
+
+public class FileItemInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public string FullPath { get; set; } = string.Empty;
+    public bool IsDirectory { get; set; }
+    public long SizeBytes { get; set; }
+    public DateTime LastModified { get; set; }
 }

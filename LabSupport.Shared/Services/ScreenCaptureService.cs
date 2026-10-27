@@ -1,3 +1,5 @@
+#pragma warning disable CA1416
+
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -6,7 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace LabSupport.Agent.Services;
+namespace LabSupport.Shared.Services;
 
 public class ScreenCaptureService
 {
@@ -21,6 +23,15 @@ public class ScreenCaptureService
 
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr OpenInputDesktop(uint dwFlags, bool fInherit, uint dwDesiredAccess);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool CloseDesktop(IntPtr hDesktop);
 
     [DllImport("gdi32.dll")]
     private static extern IntPtr CreateCompatibleDC(IntPtr hDC);
@@ -43,15 +54,28 @@ public class ScreenCaptureService
     private const int SRCCOPY = 0x00CC0020;
     private const int SM_CXSCREEN = 0;
     private const int SM_CYSCREEN = 1;
+    private const int SM_CXVIRTUALSCREEN = 78;
+    private const int SM_CYVIRTUALSCREEN = 79;
+    private const uint DESKTOP_ALL = 0x01FF;
 
     public virtual Bitmap CaptureScreen()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+            IntPtr hDesktop = IntPtr.Zero;
             try
             {
-                int width = GetSystemMetrics(SM_CXSCREEN);
-                int height = GetSystemMetrics(SM_CYSCREEN);
+                // Attempt to attach to interactive input desktop (if running as service or non-interactive)
+                hDesktop = OpenInputDesktop(0, false, DESKTOP_ALL);
+                if (hDesktop != IntPtr.Zero)
+                {
+                    SetThreadDesktop(hDesktop);
+                }
+
+                int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                if (width <= 0) width = GetSystemMetrics(SM_CXSCREEN);
+                if (height <= 0) height = GetSystemMetrics(SM_CYSCREEN);
                 if (width <= 0) width = 1920;
                 if (height <= 0) height = 1080;
 
@@ -74,8 +98,15 @@ public class ScreenCaptureService
             }
             catch
             {
-                // Fallback to synthetic bitmap if desktop handle cannot be queried (e.g. locked Session 0)
+                // Fallback to synthetic bitmap if desktop handle cannot be queried
                 return GenerateSyntheticScreen(1280, 720);
+            }
+            finally
+            {
+                if (hDesktop != IntPtr.Zero)
+                {
+                    try { CloseDesktop(hDesktop); } catch { }
+                }
             }
         }
         else
@@ -84,25 +115,53 @@ public class ScreenCaptureService
         }
     }
 
+    private static readonly byte[] MinimalJpegBytes = new byte[]
+    {
+        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x48,
+        0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08,
+        0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
+        0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20, 0x24, 0x2E, 0x27, 0x20,
+        0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29, 0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27,
+        0x39, 0x3D, 0x38, 0x32, 0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01,
+        0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4, 0x00, 0x1F, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04,
+        0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F,
+        0x00, 0xBF, 0x80, 0xFF, 0xD9
+    };
+
     public virtual byte[] CaptureScreenJpeg(int quality = 75)
     {
-        using var bmp = CaptureScreen();
-        return BitmapToJpegBytes(bmp, quality);
+        try
+        {
+            using var bmp = CaptureScreen();
+            return BitmapToJpegBytes(bmp, quality);
+        }
+        catch
+        {
+            return MinimalJpegBytes;
+        }
     }
 
     public virtual byte[] CaptureThumbnailJpeg(int width = 320, int height = 180, int quality = 60)
     {
-        using var fullBmp = CaptureScreen();
-        using var thumb = new Bitmap(width, height);
-        using (var g = Graphics.FromImage(thumb))
+        try
         {
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.SmoothingMode = SmoothingMode.HighQuality;
-            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            g.DrawImage(fullBmp, 0, 0, width, height);
-        }
+            using var fullBmp = CaptureScreen();
+            using var thumb = new Bitmap(width, height);
+            using (var g = Graphics.FromImage(thumb))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.DrawImage(fullBmp, 0, 0, width, height);
+            }
 
-        return BitmapToJpegBytes(thumb, quality);
+            return BitmapToJpegBytes(thumb, quality);
+        }
+        catch
+        {
+            return MinimalJpegBytes;
+        }
     }
 
     public static byte[] BitmapToJpegBytes(Bitmap bitmap, int quality)

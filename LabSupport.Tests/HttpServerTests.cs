@@ -90,6 +90,26 @@ public class HttpServerTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task PresentationView_ShouldReturnHtml()
+    {
+        string url = $"http://127.0.0.1:{_testPort}/presentation/view";
+        var response = await _client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("text/html", response.Content.Headers.ContentType?.MediaType);
+        string html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("/presentation/stream", html);
+    }
+
+    [Fact]
+    public void ResolveAgentBinaryPath_ShouldFindProvidedPath()
+    {
+        string? resolved = _server.ResolveAgentBinaryPath();
+        Assert.NotNull(resolved);
+        Assert.Equal(_dummyAgentPath, resolved);
+    }
+
     public void Dispose()
     {
         _server.Dispose();

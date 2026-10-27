@@ -17,6 +17,8 @@ public class CommandListener : IDisposable
     private readonly int _port;
     private readonly PowerManager _powerManager;
     private readonly ScriptExecutor _scriptExecutor;
+    private readonly InputSimulator _inputSimulator;
+    private Process? _broadcastProcess;
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private Task? _listenTask;
@@ -26,11 +28,13 @@ public class CommandListener : IDisposable
     public CommandListener(
         int port = 5902,
         PowerManager? powerManager = null,
-        ScriptExecutor? scriptExecutor = null)
+        ScriptExecutor? scriptExecutor = null,
+        InputSimulator? inputSimulator = null)
     {
         _port = port;
         _powerManager = powerManager ?? new PowerManager();
         _scriptExecutor = scriptExecutor ?? new ScriptExecutor();
+        _inputSimulator = inputSimulator ?? new InputSimulator();
     }
 
     public void Start()
@@ -280,6 +284,206 @@ public class CommandListener : IDisposable
                     CommandId = command.Id,
                     Success = true,
                     Output = MessageSerializer.Serialize(items),
+                    ExecutionTimeMs = sw.ElapsedMilliseconds
+                };
+
+            case CommandType.MouseEvent:
+                if (string.IsNullOrWhiteSpace(command.Payload))
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = "Empty mouse payload." };
+                }
+
+                var mousePayload = MessageSerializer.Deserialize<MouseInputPayload>(command.Payload);
+                bool mouseOk = mousePayload != null && _inputSimulator.SimulateMouse(mousePayload);
+                sw.Stop();
+                return new CommandResponse
+                {
+                    CommandId = command.Id,
+                    Success = mouseOk,
+                    Output = mouseOk ? "Mouse simulated." : "Failed to simulate mouse.",
+                    ExecutionTimeMs = sw.ElapsedMilliseconds
+                };
+
+            case CommandType.KeyboardEvent:
+                if (string.IsNullOrWhiteSpace(command.Payload))
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = "Empty keyboard payload." };
+                }
+
+                var keyPayload = MessageSerializer.Deserialize<KeyboardInputPayload>(command.Payload);
+                bool keyOk = keyPayload != null && _inputSimulator.SimulateKeyboard(keyPayload);
+                sw.Stop();
+                return new CommandResponse
+                {
+                    CommandId = command.Id,
+                    Success = keyOk,
+                    Output = keyOk ? "Keyboard simulated." : "Failed to simulate keyboard.",
+                    ExecutionTimeMs = sw.ElapsedMilliseconds
+                };
+
+            case CommandType.StartBroadcast:
+                string streamUrl = command.Payload ?? string.Empty;
+                try
+                {
+                    if (_broadcastProcess != null && !_broadcastProcess.HasExited)
+                    {
+                        try { _broadcastProcess.Kill(true); } catch { }
+                    }
+
+                    if (OperatingSystem.IsWindows())
+                    {
+                        var psi = new ProcessStartInfo
+                        {
+                            FileName = "msedge.exe",
+                            Arguments = $"--kiosk \"{streamUrl}\" --edge-kiosk-type=fullscreen --no-first-run",
+                            UseShellExecute = true
+                        };
+                        _broadcastProcess = Process.Start(psi);
+                    }
+                }
+                catch { }
+
+                sw.Stop();
+                return new CommandResponse
+                {
+                    CommandId = command.Id,
+                    Success = true,
+                    Output = "Broadcast presentation started.",
+                    ExecutionTimeMs = sw.ElapsedMilliseconds
+                };
+
+            case CommandType.StopBroadcast:
+                try
+                {
+                    if (_broadcastProcess != null && !_broadcastProcess.HasExited)
+                    {
+                        _broadcastProcess.Kill(true);
+                    }
+                    _broadcastProcess = null;
+                }
+                catch { }
+
+                sw.Stop();
+                return new CommandResponse
+                {
+                    CommandId = command.Id,
+                    Success = true,
+                    Output = "Broadcast presentation stopped.",
+                    ExecutionTimeMs = sw.ElapsedMilliseconds
+                };
+
+            case CommandType.UploadFile:
+                if (string.IsNullOrWhiteSpace(command.Payload))
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = "Empty file upload payload." };
+                }
+
+                var uploadPayload = MessageSerializer.Deserialize<FileTransferPayload>(command.Payload);
+                if (uploadPayload == null || string.IsNullOrWhiteSpace(uploadPayload.FileName))
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = "Invalid upload payload." };
+                }
+
+                string targetDir = uploadPayload.TargetDirectory ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(targetDir))
+                {
+                    targetDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LabSupport_Transfers");
+                }
+
+                try
+                {
+                    if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+                    string destPath = Path.Combine(targetDir, uploadPayload.FileName);
+                    byte[] fileBytes = Convert.FromBase64String(uploadPayload.ContentBase64);
+                    await File.WriteAllBytesAsync(destPath, fileBytes, token);
+
+                    sw.Stop();
+                    return new CommandResponse
+                    {
+                        CommandId = command.Id,
+                        Success = true,
+                        Output = $"File saved: {destPath} ({fileBytes.Length} bytes)",
+                        ExecutionTimeMs = sw.ElapsedMilliseconds
+                    };
+                }
+                catch (Exception ex)
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = $"Save failed: {ex.Message}", ExecutionTimeMs = sw.ElapsedMilliseconds };
+                }
+
+            case CommandType.DownloadFile:
+                string filePath = command.Payload ?? string.Empty;
+                if (!File.Exists(filePath))
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = $"File not found: {filePath}" };
+                }
+
+                try
+                {
+                    byte[] bytes = await File.ReadAllBytesAsync(filePath, token);
+                    sw.Stop();
+                    return new CommandResponse
+                    {
+                        CommandId = command.Id,
+                        Success = true,
+                        Output = Convert.ToBase64String(bytes),
+                        ExecutionTimeMs = sw.ElapsedMilliseconds
+                    };
+                }
+                catch (Exception ex)
+                {
+                    sw.Stop();
+                    return new CommandResponse { CommandId = command.Id, Success = false, Error = ex.Message };
+                }
+
+            case CommandType.GetFileList:
+                string browseDir = command.Payload ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(browseDir) || !Directory.Exists(browseDir))
+                {
+                    browseDir = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                }
+
+                var fileItems = new List<FileItemInfo>();
+                try
+                {
+                    var di = new DirectoryInfo(browseDir);
+                    foreach (var d in di.GetDirectories().Take(50))
+                    {
+                        fileItems.Add(new FileItemInfo
+                        {
+                            Name = d.Name,
+                            FullPath = d.FullName,
+                            IsDirectory = true,
+                            LastModified = d.LastWriteTimeUtc
+                        });
+                    }
+
+                    foreach (var f in di.GetFiles().Take(100))
+                    {
+                        fileItems.Add(new FileItemInfo
+                        {
+                            Name = f.Name,
+                            FullPath = f.FullName,
+                            IsDirectory = false,
+                            SizeBytes = f.Length,
+                            LastModified = f.LastWriteTimeUtc
+                        });
+                    }
+                }
+                catch { }
+
+                sw.Stop();
+                return new CommandResponse
+                {
+                    CommandId = command.Id,
+                    Success = true,
+                    Output = MessageSerializer.Serialize(fileItems),
                     ExecutionTimeMs = sw.ElapsedMilliseconds
                 };
 

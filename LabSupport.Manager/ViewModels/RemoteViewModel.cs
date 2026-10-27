@@ -3,11 +3,13 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using LabSupport.Manager.Models;
 using LabSupport.Shared.Services;
 using LabSupport.Shared.Protocol;
+using RemoteMouseAction = LabSupport.Shared.Protocol.MouseAction;
 
 namespace LabSupport.Manager.ViewModels;
 
@@ -21,9 +23,11 @@ public class RemoteViewModel : ViewModelBase, IDisposable
     private LabComputer? _targetComputer;
     private BitmapSource? _remoteScreenSource;
     private bool _isConnected;
+    private bool _isControlEnabled = true;
     private string _connectionStatus = "Terputus";
-    private int _refreshIntervalMs = 150; // ~6-7 FPS
+    private int _refreshIntervalMs = 120; // ~8 FPS
     private string _customMessage = string.Empty;
+    private string _typingText = string.Empty;
 
     public LabComputer? TargetComputer
     {
@@ -52,6 +56,12 @@ public class RemoteViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _isConnected, value);
     }
 
+    public bool IsControlEnabled
+    {
+        get => _isControlEnabled;
+        set => SetProperty(ref _isControlEnabled, value);
+    }
+
     public string ConnectionStatus
     {
         get => _connectionStatus;
@@ -70,12 +80,20 @@ public class RemoteViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _customMessage, value);
     }
 
+    public string TypingText
+    {
+        get => _typingText;
+        set => SetProperty(ref _typingText, value);
+    }
+
     public ICommand ToggleConnectCommand { get; }
     public ICommand SendLockCommand { get; }
     public ICommand SendRestartCommand { get; }
     public ICommand SendShutdownCommand { get; }
     public ICommand SendMessageCommand { get; }
     public ICommand SaveScreenshotCommand { get; }
+    public ICommand SendShortcutCommand { get; }
+    public ICommand SendTypingTextCommand { get; }
 
     public RemoteViewModel(AgentCommandService commandService, HttpClient? httpClient = null)
     {
@@ -88,6 +106,8 @@ public class RemoteViewModel : ViewModelBase, IDisposable
         SendShutdownCommand = new AsyncRelayCommand(SendShutdownAsync);
         SendMessageCommand = new AsyncRelayCommand(SendMessageAsync);
         SaveScreenshotCommand = new RelayCommand(SaveScreenshot);
+        SendShortcutCommand = new AsyncRelayCommand(p => SendShortcutAsync(p?.ToString() ?? ""));
+        SendTypingTextCommand = new AsyncRelayCommand(SendTypingTextAsync);
     }
 
     private async Task ToggleConnectAsync()
@@ -131,24 +151,28 @@ public class RemoteViewModel : ViewModelBase, IDisposable
                 byte[] jpegBytes = await _httpClient.GetByteArrayAsync(url, token);
                 if (jpegBytes.Length > 0)
                 {
-                    await App.Current.Dispatcher.InvokeAsync(() =>
+                    var dispatcher = Application.Current?.Dispatcher;
+                    if (dispatcher != null)
                     {
-                        try
+                        await dispatcher.InvokeAsync(() =>
                         {
-                            var img = new BitmapImage();
-                            using (var ms = new MemoryStream(jpegBytes))
+                            try
                             {
-                                img.BeginInit();
-                                img.CacheOption = BitmapCacheOption.OnLoad;
-                                img.StreamSource = ms;
-                                img.EndInit();
+                                var img = new BitmapImage();
+                                using (var ms = new MemoryStream(jpegBytes))
+                                {
+                                    img.BeginInit();
+                                    img.CacheOption = BitmapCacheOption.OnLoad;
+                                    img.StreamSource = ms;
+                                    img.EndInit();
+                                }
+                                img.Freeze();
+                                RemoteScreenSource = img;
+                                ConnectionStatus = $"Terhubung ({TargetComputer.Hostname})";
                             }
-                            img.Freeze();
-                            RemoteScreenSource = img;
-                            ConnectionStatus = $"Terhubung ({TargetComputer.Hostname})";
-                        }
-                        catch { }
-                    });
+                            catch { }
+                        });
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -157,10 +181,14 @@ public class RemoteViewModel : ViewModelBase, IDisposable
             }
             catch (Exception ex)
             {
-                await App.Current.Dispatcher.InvokeAsync(() =>
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher != null)
                 {
-                    ConnectionStatus = $"Error stream: {ex.Message}";
-                });
+                    await dispatcher.InvokeAsync(() =>
+                    {
+                        ConnectionStatus = $"Error stream: {ex.Message}";
+                    });
+                }
             }
 
             try
@@ -179,6 +207,95 @@ public class RemoteViewModel : ViewModelBase, IDisposable
         _streamCts?.Cancel();
         IsConnected = false;
         ConnectionStatus = "Terputus";
+    }
+
+    public async Task SendMouseInputAsync(double normX, double normY, RemoteMouseAction action, int wheelDelta = 0)
+    {
+        if (!IsConnected || !IsControlEnabled || TargetComputer == null) return;
+
+        var payload = new MouseInputPayload
+        {
+            Action = action,
+            NormalizedX = normX,
+            NormalizedY = normY,
+            WheelDelta = wheelDelta
+        };
+
+        var cmd = new CommandMessage
+        {
+            Type = CommandType.MouseEvent,
+            Payload = MessageSerializer.Serialize(payload)
+        };
+
+        await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: 2000);
+    }
+
+    public async Task SendShortcutAsync(string shortcut)
+    {
+        if (TargetComputer == null || string.IsNullOrWhiteSpace(shortcut)) return;
+
+        var payload = new KeyboardInputPayload
+        {
+            Action = KeyboardAction.Shortcut,
+            Key = shortcut
+        };
+
+        var cmd = new CommandMessage
+        {
+            Type = CommandType.KeyboardEvent,
+            Payload = MessageSerializer.Serialize(payload)
+        };
+
+        await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: 3000);
+    }
+
+    public async Task SendTypingTextAsync()
+    {
+        if (TargetComputer == null || string.IsNullOrWhiteSpace(TypingText)) return;
+
+        var payload = new KeyboardInputPayload
+        {
+            Action = KeyboardAction.Text,
+            Text = TypingText
+        };
+
+        var cmd = new CommandMessage
+        {
+            Type = CommandType.KeyboardEvent,
+            Payload = MessageSerializer.Serialize(payload)
+        };
+
+        await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: 5000);
+        TypingText = string.Empty;
+    }
+
+    public async Task<bool> SendFileAsync(string localFilePath, string? targetDirectory = null)
+    {
+        if (TargetComputer == null || !File.Exists(localFilePath)) return false;
+
+        try
+        {
+            byte[] fileBytes = await File.ReadAllBytesAsync(localFilePath);
+            var payload = new FileTransferPayload
+            {
+                FileName = Path.GetFileName(localFilePath),
+                TargetDirectory = targetDirectory,
+                ContentBase64 = Convert.ToBase64String(fileBytes)
+            };
+
+            var cmd = new CommandMessage
+            {
+                Type = CommandType.UploadFile,
+                Payload = MessageSerializer.Serialize(payload)
+            };
+
+            var resp = await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: 30000);
+            return resp.Success;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task SendLockAsync()

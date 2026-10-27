@@ -51,5 +51,15 @@ public static class WolHelper
         client.EnableBroadcast = true;
         var endPoint = new IPEndPoint(IPAddress.Parse(broadcastAddress), port);
         await client.SendAsync(packet, packet.Length, endPoint);
+
+        if (port == 9)
+        {
+            try
+            {
+                var endPoint7 = new IPEndPoint(IPAddress.Parse(broadcastAddress), 7);
+                await client.SendAsync(packet, packet.Length, endPoint7);
+            }
+            catch { }
+        }
     }
 }

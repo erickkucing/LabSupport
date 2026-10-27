@@ -46,32 +46,40 @@ LabSupport adalah perangkat lunak manajemen dan remote laboratorium komputer nat
    - Indikator status Online (hijau) dan Offline (abu-abu) otomatis via heartbeat detector (timeout 15 detik).
    - Pencarian instan dan penyaringan status (Semua, Online, Offline).
 
-3. **Remote Desktop & Screen Monitoring**
+3. **Remote Desktop Interaktif & Screen Monitoring**
    - Streaming tampilan layar PC Lab secara langsung melalui protokol MJPEG ringan.
-   - Kontrol cepat dari jendela remote: Kunci layar (Lock Screen), Kirim Pesan Pop-up, Restart, Shutdown, dan Simpan Screenshot.
+   - **Kontrol Mouse & Keyboard Penuh**: Klik kiri, klik kanan, klik ganda, scroll mouse, dan kirim pengetikan teks secara real-time.
+   - Tombol shortcut cepat: Win+D (Desktop), Alt+F4, Task Manager (Ctrl+Shift+Esc), Kunci Layar (LockWorkStation), Restart, Shutdown, dan Simpan Screenshot PNG.
 
-4. **Eksekusi Script Multi-PC (Broadcast Command)**
+4. **Broadcast Layar (Mode Presentasi Guru/Laboran)**
+   - Streaming tampilan layar PC Manajemen ke seluruh atau sebagian PC Lab secara real-time.
+   - PC Lab otomatis membuka layar presentasi secara fullscreen (kiosk borderless) dan dapat dihentikan kapan saja dari Manager.
+
+5. **Transfer File Jarak Jauh (File Transfer)**
+   - Kirim file materi, tugas, atau installer dari PC Manajemen ke PC Lab secara individual maupun broadcast ke banyak PC sekaligus.
+
+6. **Eksekusi Script Multi-PC (Broadcast Command)**
    - Jalankan script PowerShell atau Batch/CMD ke seluruh komputer lab atau komputer terpilih secara bersamaan.
    - Dilengkapi template cepat: Info Sistem, Flush DNS, Daftar Layanan Aktif, Pembersihan File Temporary, dan Ping Test.
    - Hasil output (stdout, stderr, dan waktu eksekusi) ditampilkan per PC secara transparan di panel kontrol.
 
-5. **Manajemen Daya Lengkap**
+7. **Manajemen Daya Lengkap**
    - **Shutdown**: Mematikan komputer lab dari jarak jauh secara aman.
    - **Restart**: Merestart komputer lab.
    - **Lock Screen**: Mengunci workstation seketika untuk menjaga fokus siswa/praktikan.
-   - **Wake-on-LAN (WoL)**: Menyalakan komputer yang mati melalui pengiriman Magic Packet UDP ke alamat MAC fisik.
+   - **Wake-on-LAN (WoL)**: Menyalakan komputer yang mati melalui pengiriman Magic Packet UDP ke port 9 dan 7 ke alamat MAC fisik.
 
-6. **Deploy Headless Agent Otomatis (Generator Script)**
+8. **Deploy Headless Agent Otomatis (Generator Script)**
    - Menu **Generate Agent** di Manager mendeteksi IP address LAN secara otomatis.
-   - Menghasilkan dua file:
+   - Menghasilkan dua file installer siap pakai:
      - `install_agent.bat`: Launcher pintar dengan auto-elevasi hak akses Administrator (UAC prompt).
-     - `install_agent.ps1`: Memeriksa ping ke PC Manajemen terlebih dahulu untuk memastikan koneksi jaringan, lalu mengunduh `LabSupport.Agent.exe` langsung dari server HTTP built-in Manager, memasang Windows Service `LabSupportAgent` dengan startup tipe *Automatic*, dan langsung menjalankannya secara headless.
+     - `install_agent.ps1`: Memeriksa ping ke PC Manajemen terlebih dahulu (wajib), mengunduh binary agent berkecepatan tinggi, mengonfigurasi Windows Firewall untuk port 5901 & 5902, mendaftarkan Windows Service `LabSupportAgent` (Automatic) serta Scheduled Task (OnLogon highest privilege), dan langsung menjalankannya secara headless.
 
-7. **Database SQLite & Riwayat Aktivitas**
+9. **Database SQLite & Riwayat Aktivitas**
    - Menyimpan daftar komputer, catatan inventaris, alamat MAC untuk Wake-on-LAN, dan riwayat aktivitas perintah secara lokal tanpa perlu konfigurasi database eksternal.
 
-8. **Dukungan Bilingual**
-   - Mendukung peralihan bahasa antarmuka secara instan antara **Bahasa Indonesia** dan **English**.
+10. **Dukungan Bilingual**
+    - Mendukung peralihan bahasa antarmuka secara instan antara **Bahasa Indonesia** dan **English**.
 
 ---
 

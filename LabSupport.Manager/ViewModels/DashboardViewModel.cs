@@ -19,18 +19,26 @@ public class DashboardViewModel : ViewModelBase
     private readonly DatabaseService _databaseService;
     private readonly AgentCommandService _commandService;
     private readonly WolService _wolService;
+    private readonly HttpFileServer? _httpFileServer;
     private readonly DispatcherTimer _offlineCheckTimer;
 
     private string _searchText = string.Empty;
     private string _selectedFilter = "All"; // All, Online, Offline
     private LabComputer? _selectedComputer;
     private string _statusMessage = "Siap.";
+    private bool _isBroadcasting;
 
     public ObservableCollection<LabComputer> Computers { get; } = new();
     public ICollectionView FilteredComputers { get; }
 
     public event Action<LabComputer>? OnOpenRemoteRequested;
     public event Action<LabComputer>? OnOpenScriptRequested;
+
+    public bool IsBroadcasting
+    {
+        get => _isBroadcasting;
+        set => SetProperty(ref _isBroadcasting, value);
+    }
 
     public string SearchText
     {
@@ -81,15 +89,19 @@ public class DashboardViewModel : ViewModelBase
     public ICommand RefreshCommand { get; }
     public ICommand OpenRemoteCommand { get; }
     public ICommand OpenScriptCommand { get; }
+    public ICommand StartBroadcastCommand { get; }
+    public ICommand StopBroadcastCommand { get; }
 
     public DashboardViewModel(
         DatabaseService databaseService,
         AgentCommandService commandService,
-        WolService wolService)
+        WolService wolService,
+        HttpFileServer? httpFileServer = null)
     {
         _databaseService = databaseService;
         _commandService = commandService;
         _wolService = wolService;
+        _httpFileServer = httpFileServer;
 
         FilteredComputers = CollectionViewSource.GetDefaultView(Computers);
         FilteredComputers.Filter = FilterComputerItem;
@@ -101,6 +113,8 @@ public class DashboardViewModel : ViewModelBase
         LockSelectedCommand = new AsyncRelayCommand(LockSelectedAsync);
         WakeSelectedCommand = new AsyncRelayCommand(WakeSelectedAsync);
         RefreshCommand = new AsyncRelayCommand(LoadComputersFromDbAsync);
+        StartBroadcastCommand = new AsyncRelayCommand(StartBroadcastAsync);
+        StopBroadcastCommand = new AsyncRelayCommand(StopBroadcastAsync);
 
         OpenRemoteCommand = new RelayCommand(p =>
         {
@@ -137,29 +151,98 @@ public class DashboardViewModel : ViewModelBase
                pc.MacAddress.ToLowerInvariant().Contains(query);
     }
 
+    public async Task StartBroadcastAsync()
+    {
+        var targets = Computers.Where(c => c.IsOnline).ToList();
+        if (targets.Count == 0)
+        {
+            StatusMessage = "Tidak ada komputer online untuk broadcast.";
+            return;
+        }
+
+        string localIp = NetworkHelper.GetLocalIPv4Addresses().FirstOrDefault(ip => !ip.StartsWith("127.")) ?? "127.0.0.1";
+        int port = _httpFileServer?.Port ?? 8080;
+        string streamUrl = $"http://{localIp}:{port}/presentation/view";
+
+        if (_httpFileServer != null)
+        {
+            var screenCapture = new ScreenCaptureService();
+            _httpFileServer.PresentationFrameProvider = () => screenCapture.CaptureScreenJpeg(65);
+        }
+
+        StatusMessage = $"Memulai broadcast layar ke {targets.Count} PC...";
+        var cmd = new CommandMessage
+        {
+            Type = CommandType.StartBroadcast,
+            Payload = streamUrl
+        };
+
+        await _commandService.SendBroadcastCommandAsync(targets.Select(t => t.IpAddress), cmd);
+        IsBroadcasting = true;
+        StatusMessage = $"Broadcast layar aktif ({targets.Count} PC terhubung).";
+    }
+
+    public async Task StopBroadcastAsync()
+    {
+        var targets = Computers.Where(c => c.IsOnline).ToList();
+        if (_httpFileServer != null)
+        {
+            _httpFileServer.PresentationFrameProvider = null;
+        }
+
+        var cmd = new CommandMessage { Type = CommandType.StopBroadcast };
+        await _commandService.SendBroadcastCommandAsync(targets.Select(t => t.IpAddress), cmd);
+        IsBroadcasting = false;
+        StatusMessage = "Broadcast layar dihentikan.";
+    }
+
     public async Task LoadComputersFromDbAsync()
     {
         try
         {
             var dbComputers = await _databaseService.GetAllComputersAsync();
-            Application.Current?.Dispatcher.Invoke(() =>
+            var now = DateTime.UtcNow;
+
+            var dispatcher = Application.Current?.Dispatcher;
+            Action updateAction = () =>
             {
-                Computers.Clear();
+                var existingMap = Computers.ToDictionary(c => c.Hostname, StringComparer.OrdinalIgnoreCase);
+
                 foreach (var c in dbComputers)
                 {
-                    Computers.Add(new LabComputer
+                    if (existingMap.TryGetValue(c.Hostname, out var existing))
                     {
-                        Hostname = c.Hostname,
-                        IpAddress = c.IpAddress,
-                        MacAddress = c.MacAddress,
-                        OsVersion = c.OsVersion,
-                        LastSeen = c.LastSeen,
-                        Notes = c.Notes,
-                        IsOnline = false
-                    });
+                        existing.IpAddress = c.IpAddress;
+                        existing.MacAddress = c.MacAddress;
+                        existing.OsVersion = c.OsVersion;
+                        existing.Notes = c.Notes;
+                    }
+                    else
+                    {
+                        bool isRecent = (now - c.LastSeen).TotalSeconds < 15;
+                        Computers.Add(new LabComputer
+                        {
+                            Hostname = c.Hostname,
+                            IpAddress = c.IpAddress,
+                            MacAddress = c.MacAddress,
+                            OsVersion = c.OsVersion,
+                            LastSeen = c.LastSeen,
+                            Notes = c.Notes,
+                            IsOnline = isRecent
+                        });
+                    }
                 }
                 UpdateStats();
-            });
+            };
+
+            if (dispatcher != null)
+            {
+                dispatcher.Invoke(updateAction);
+            }
+            else
+            {
+                updateAction();
+            }
         }
         catch (Exception ex)
         {

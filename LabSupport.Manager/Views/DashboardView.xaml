@@ -75,6 +75,21 @@
 
                 <!-- Batch Actions -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Padding="10,6" Margin="0,0,6,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                <Setter Property="Content" Value="📡 Broadcast Layar"/>
+                                <Setter Property="Command" Value="{Binding StartBroadcastCommand}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBroadcasting}" Value="True">
+                                        <Setter Property="Content" Value="⏹ Hentikan Broadcast"/>
+                                        <Setter Property="Command" Value="{Binding StopBroadcastCommand}"/>
+                                        <Setter Property="Background" Value="#DC2626"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <Button Content="{DynamicResource Str_BtnWake}" Command="{Binding WakeSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
                     <Button Content="{DynamicResource Str_BtnLock}" Command="{Binding LockSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
                     <Button Content="{DynamicResource Str_BtnRestart}" Command="{Binding RestartSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
