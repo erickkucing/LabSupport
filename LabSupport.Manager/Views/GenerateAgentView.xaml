@@ -1,0 +1,106 @@
+<UserControl x:Class="LabSupport.Manager.Views.GenerateAgentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:LabSupport.Manager.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance vm:GenerateAgentViewModel}"
+             d:DesignHeight="700" d:DesignWidth="1000">
+    <Grid Background="{StaticResource BgDark}" Margin="24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="420"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Form Card -->
+        <Border Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,16,0">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource Str_GenTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
+                <TextBlock Text="{DynamicResource Str_GenDescription}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                <!-- Manager IP -->
+                <TextBlock Text="{DynamicResource Str_ManagerIpLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
+                <ComboBox ItemsSource="{Binding AvailableIpAddresses}"
+                          SelectedItem="{Binding SelectedManagerIp, UpdateSourceTrigger=PropertyChanged}"
+                          IsEditable="True"
+                          Background="{StaticResource BgSidebar}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,14" Height="32"/>
+
+                <!-- Port -->
+                <TextBlock Text="{DynamicResource Str_ManagerPortLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
+                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32" Margin="0,0,0,14">
+                    <TextBox Text="{Binding ManagerPort, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,6" FontSize="12"/>
+                </Border>
+
+                <!-- Service Name -->
+                <TextBlock Text="{DynamicResource Str_ServiceNameLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
+                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32" Margin="0,0,0,14">
+                    <TextBox Text="{Binding ServiceName, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,6" FontSize="12"/>
+                </Border>
+
+                <!-- Output Directory -->
+                <TextBlock Text="{DynamicResource Str_OutputDirLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
+                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32" Margin="0,0,0,20">
+                    <TextBox Text="{Binding OutputDirectory, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,6" FontSize="12"/>
+                </Border>
+
+                <!-- Generate Button -->
+                <Button Content="{DynamicResource Str_BtnGenerate}" Command="{Binding GenerateCommand}" Style="{StaticResource PrimaryButton}" Height="38" Margin="0,0,0,16"/>
+
+                <!-- Status Feedback Box -->
+                <Border Background="#064E3B" BorderBrush="#059669" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StatusMessage}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StatusMessage, Converter={x:Null}}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#D1FAE5" FontSize="12" TextWrapping="Wrap"/>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- Right Preview Tab Card -->
+        <Border Grid.Column="1" Style="{StaticResource ModernCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Preview Script yang Dihasilkan" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
+
+                <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+                    <!-- PS1 Tab -->
+                    <TabItem Header="install_agent.ps1 (PowerShell)" Foreground="{StaticResource TextPrimary}">
+                        <Border Background="#090D16" CornerRadius="6" Margin="0,8,0,0" Padding="12">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <TextBox Text="{Binding Ps1Preview, Mode=OneWay}"
+                                         FontFamily="Consolas, monospace" FontSize="11" Foreground="#93C5FD"
+                                         Background="Transparent" BorderThickness="0" IsReadOnly="True"/>
+                            </ScrollViewer>
+                        </Border>
+                    </TabItem>
+
+                    <!-- BAT Tab -->
+                    <TabItem Header="install_agent.bat (Launcher)" Foreground="{StaticResource TextPrimary}">
+                        <Border Background="#090D16" CornerRadius="6" Margin="0,8,0,0" Padding="12">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <TextBox Text="{Binding BatPreview, Mode=OneWay}"
+                                         FontFamily="Consolas, monospace" FontSize="11" Foreground="#FDE047"
+                                         Background="Transparent" BorderThickness="0" IsReadOnly="True"/>
+                            </ScrollViewer>
+                        </Border>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

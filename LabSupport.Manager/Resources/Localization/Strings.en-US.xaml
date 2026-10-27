@@ -1,0 +1,61 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <!-- App Header & Navigation -->
+    <sys:String x:Key="Str_AppTitle">LabSupport — Computer Laboratory Management System</sys:String>
+    <sys:String x:Key="Str_NavDashboard">Lab Dashboard</sys:String>
+    <sys:String x:Key="Str_NavScript">Script Execution</sys:String>
+    <sys:String x:Key="Str_NavRemote">Remote Desktop</sys:String>
+    <sys:String x:Key="Str_NavGenerate">Generate Agent</sys:String>
+    <sys:String x:Key="Str_NavSettings">Settings</sys:String>
+
+    <!-- Dashboard -->
+    <sys:String x:Key="Str_SearchPlaceholder">Search hostname, IP, MAC address...</sys:String>
+    <sys:String x:Key="Str_FilterAll">All</sys:String>
+    <sys:String x:Key="Str_FilterOnline">Online</sys:String>
+    <sys:String x:Key="Str_FilterOffline">Offline</sys:String>
+    <sys:String x:Key="Str_SelectAll">Select All</sys:String>
+    <sys:String x:Key="Str_DeselectAll">Deselect All</sys:String>
+    <sys:String x:Key="Str_BtnShutdown">Shutdown PC</sys:String>
+    <sys:String x:Key="Str_BtnRestart">Restart PC</sys:String>
+    <sys:String x:Key="Str_BtnLock">Lock Screen</sys:String>
+    <sys:String x:Key="Str_BtnWake">Wake (WoL)</sys:String>
+    <sys:String x:Key="Str_TotalPCs">Total PCs</sys:String>
+    <sys:String x:Key="Str_OnlinePCs">Active / Online</sys:String>
+    <sys:String x:Key="Str_OfflinePCs">Offline</sys:String>
+
+    <!-- Script Execution -->
+    <sys:String x:Key="Str_ScriptTitle">Command Script Execution</sys:String>
+    <sys:String x:Key="Str_ScriptType">Script Type:</sys:String>
+    <sys:String x:Key="Str_ScriptTarget">Target PCs:</sys:String>
+    <sys:String x:Key="Str_TargetAllOnline">All Online Computers</sys:String>
+    <sys:String x:Key="Str_TargetSelected">Selected Computers</sys:String>
+    <sys:String x:Key="Str_BtnRunScript">Run Script</sys:String>
+    <sys:String x:Key="Str_BtnClearResults">Clear Results</sys:String>
+    <sys:String x:Key="Str_Templates">Quick Templates:</sys:String>
+
+    <!-- Remote Desktop -->
+    <sys:String x:Key="Str_RemoteTitle">Remote Desktop &amp; Monitoring</sys:String>
+    <sys:String x:Key="Str_BtnConnect">Start Remote</sys:String>
+    <sys:String x:Key="Str_BtnDisconnect">Disconnect</sys:String>
+    <sys:String x:Key="Str_BtnScreenshot">Take Screenshot</sys:String>
+    <sys:String x:Key="Str_SendNotice">Send Notice:</sys:String>
+    <sys:String x:Key="Str_BtnSend">Send</sys:String>
+
+    <!-- Generate Agent -->
+    <sys:String x:Key="Str_GenTitle">Generate Agent &amp; Deployment Scripts</sys:String>
+    <sys:String x:Key="Str_GenDescription">Create automated deployment scripts (.bat &amp; .ps1) to run on Lab PCs without installation hassle.</sys:String>
+    <sys:String x:Key="Str_ManagerIpLabel">Manager PC IP Address:</sys:String>
+    <sys:String x:Key="Str_ManagerPortLabel">HTTP Server Port:</sys:String>
+    <sys:String x:Key="Str_ServiceNameLabel">Windows Service Name:</sys:String>
+    <sys:String x:Key="Str_OutputDirLabel">Output Directory:</sys:String>
+    <sys:String x:Key="Str_BtnGenerate">Generate Agent Package</sys:String>
+    <sys:String x:Key="Str_BatTab">Launcher (.bat)</sys:String>
+    <sys:String x:Key="Str_Ps1Tab">Script (.ps1)</sys:String>
+
+    <!-- Settings -->
+    <sys:String x:Key="Str_SettingsTitle">System Settings</sys:String>
+    <sys:String x:Key="Str_LangLabel">Display Language:</sys:String>
+    <sys:String x:Key="Str_BtnSaveSettings">Save Settings</sys:String>
+    <sys:String x:Key="Str_ActivityLogs">Activity History</sys:String>
+</ResourceDictionary>
