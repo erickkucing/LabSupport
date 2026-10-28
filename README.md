@@ -1,181 +1,152 @@
 # LabSupport — Portable Computer Laboratory Management System
-> Sistem Manajemen Laboratorium Komputer Berbasis Windows Native (100% Portable Tanpa Instalasi)
 
-LabSupport adalah perangkat lunak manajemen dan remote laboratorium komputer native Windows yang dirancang sebagai alternatif modern, ringan, dan portabel untuk perangkat lunak seperti NetSupport School. Aplikasi ini dapat dijalankan langsung (portable .exe) dari USB flash drive tanpa instalasi rumit, baik di sisi PC Laboran (Manajemen) maupun di sisi PC Laboratorium (Client/Agent).
+[![CI — Build & Test](https://github.com/erickkucing/LabSupport/actions/workflows/ci.yml/badge.svg)](https://github.com/erickkucing/LabSupport/actions/workflows/ci.yml)
+[![CD — Release Build & Publish](https://github.com/erickkucing/LabSupport/actions/workflows/release.yml/badge.svg)](https://github.com/erickkucing/LabSupport/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/erickkucing/LabSupport?color=blue&label=Latest%20Release)](https://github.com/erickkucing/LabSupport/releases/latest)
+[![.NET Version](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg)](https://microsoft.com/windows)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+> **Sistem Manajemen dan Remote Laboratorium Komputer Native Windows Modern, Ringan, dan 100% Portabel (Tanpa Instalasi .NET Runtime).**
+
+LabSupport adalah alternatif modern, cepat, dan open-source untuk perangkat lunak manajemen lab seperti NetSupport School. Dirancang khusus untuk PC Laboran/Guru dan PC Siswa di sekolah, kampus, dan pusat pelatihan komputer dengan arsitektur *self-contained single-file executable* yang dapat dijalankan langsung dari flash disk.
 
 ---
 
-## Arsitektur Sistem
+## ⚡ Tautan Cepat & Dokumentasi
 
-```
-┌────────────────────────────────────────────────────────┐
-│     🖥️ PC Manajemen (LabSupport.Manager - WPF GUI)     │
-├────────────────────────────────────────────────────────┤
-│ • Dashboard Grid PC Lab (Live Thumbnail, CPU, RAM)    │
-│ • Remote Desktop Streaming & Screen Monitoring         │
-│ • Multi-PC Broadcast Script Runner (PowerShell / CMD)  │
-│ • Power Manager: Shutdown, Restart, Lock, Wake-on-LAN  │
-│ • Automated Agent Script Generator (.bat / .ps1)      │
-│ • Built-in HTTP Server (Port 8080) & SQLite DB         │
-└───────────────────────┬────────────────────────────────┘
-                        │
-       LAN / Wi-Fi Network Connection (Ping Verifikasi)
-                        │
-┌───────────────────────▼────────────────────────────────┐
-│      💻 PC Lab (LabSupport.Agent - Headless Service)    │
-├────────────────────────────────────────────────────────┤
-│ • Headless Windows Service (Autostart Otomatis)        │
-│ • Push Heartbeat & Screenshot Thumbnail (Tiap 5 Detik) │
-│ • MJPEG Live Screen Streamer (Port 5901)               │
-│ • TCP Command Listener (Port 5902)                     │
-│ • Script Executor (PowerShell & Batch Async Engine)    │
-│ • Win32 Power Controller & MAC Address Broadcaster     │
-└────────────────────────────────────────────────────────┘
+- 📦 **[Unduh Rilis Portable Terbaru (.zip)](https://github.com/erickkucing/LabSupport/releases/latest)**
+- 📖 **[Panduan Deployment & Instalasi Lengkap](docs/DEPLOYMENT_GUIDE.md)**
+- 📐 **[Spesifikasi Arsitektur & Protokol Komunikasi](docs/ARCHITECTURE.md)**
+
+---
+
+## 🌟 Fitur Utama
+
+```mermaid
+graph LR
+    M["🖥️ LabSupport Manager\n(PC Laboran / Guru)"] -->|Remote Control & Live Stream| A1["💻 PC Lab 01"]
+    M -->|Mass Action & Exam Lockdown| A2["💻 PC Lab 02"]
+    M -->|Broadcast Layar Guru| A3["💻 PC Lab ..."]
+    M -->|Wake-on-LAN Magic Packet| A4["💻 PC Lab N"]
 ```
 
----
+### 1. 🚀 100% Portabel & Tanpa Ketergantungan Eksternal
+- **Self-Contained Executable**: .NET 8 runtime sudah di-embed langsung ke dalam binary `.exe`.
+- Cukup salin folder atau colok flash disk USB, langsung jalan di Windows 10 dan Windows 11 64-bit tanpa perlu menginstal framework tambahan.
 
-## Fitur Utama
+### 2. 🖥️ Dashboard Real-Time & Live Monitoring
+- Grid thumbnail interaktif dengan pembaruan snapshot visual, CPU, dan RAM berkala setiap 5 detik.
+- Indikator status otomatis: **Online** (hijau) dan **Offline** (abu-abu) berbasis deteksi heartbeat pintar.
+- Penyaringan cepat berdasarkan nama komputer, IP, atau status aktif.
 
-1. **100% Portable (Self-Contained Executable)**
-   - Tidak memerlukan instalasi runtime .NET tambahan di PC target (runtime telah ter-embed).
-   - Cukup salin folder atau jalankan `.exe` langsung dari flash disk.
+### 3. 🖱️ Remote Desktop Interaktif & Broadcast Layar Guru
+- **Remote Kontrol Penuh**: Streaming visual berbasis MJPEG berkecepatan tinggi dengan kendali mouse (klik kiri, kanan, ganda, drag, scroll) dan pengetikan keyboard jarak jauh.
+- **Broadcast Layar Guru**: Menyiarkan layar PC Guru ke seluruh PC Siswa secara serentak (mode presentasi kiosk fullscreen).
+- Tombol kendali cepat: Win+D, Alt+F4, Task Manager (Ctrl+Shift+Esc), Kunci Layar, dan Tangkapan Layar PNG.
 
-2. **Dashboard Interaktif Real-time**
-   - Tampilan grid responsif menampilkan thumbnail layar komputer, hostname, IP, MAC address, serta penggunaan CPU dan RAM terkini.
-   - Indikator status Online (hijau) dan Offline (abu-abu) otomatis via heartbeat detector (timeout 15 detik).
-   - Pencarian instan dan penyaringan status (Semua, Online, Offline).
+### 4. 🔒 Keamanan Ujian & Pengawasan Ketat (Exam Guard)
+- **Exam Lockdown**: Mengunci komputer siswa dalam mode ujian terisolasi, mematikan Task Manager, kombinasi tombol Alt+Tab / Win, dan menutup paksa aplikasi non-ujian (*blacklisted processes*).
+- **USB Storage Blocker**: Mengunci port USB agar media penyimpanan eksternal tidak dapat dibaca untuk mencegah kebocoran soal atau penyebaran malware.
+- **Firewall & Web Blocker**: Memblokir akses domain tertentu (sosial media, game, dsb.) secara otomatis.
 
-3. **Remote Desktop Interaktif & Screen Monitoring**
-   - Streaming tampilan layar PC Lab secara langsung melalui protokol MJPEG ringan.
-   - **Kontrol Mouse & Keyboard Penuh**: Klik kiri, klik kanan, klik ganda, scroll mouse, dan kirim pengetikan teks secara real-time.
-   - Tombol shortcut cepat: Win+D (Desktop), Alt+F4, Task Manager (Ctrl+Shift+Esc), Kunci Layar (LockWorkStation), Restart, Shutdown, dan Simpan Screenshot PNG.
+### 5. 📁 Distribusi File & Eksekusi Skrip Multi-PC
+- **File Distribution**: Kirim materi pelajaran, modul praktikum, atau file tugas ke seluruh komputer siswa hanya dengan satu klik.
+- **Broadcast Script Engine**: Jalankan skrip PowerShell dan Batch (CMD) secara massal ke semua PC lab dengan penanganan batas waktu (*timeout*) dan laporan output (stdout/stderr) transparan.
+- **Template Skrip Cepat**: Flush DNS, Info Hardware, Pembersihan File Temp, dan Tes Koneksi Jaringan.
 
-4. **Broadcast Layar (Mode Presentasi Guru/Laboran)**
-   - Streaming tampilan layar PC Manajemen ke seluruh atau sebagian PC Lab secara real-time.
-   - PC Lab otomatis membuka layar presentasi secara fullscreen (kiosk borderless) dan dapat dihentikan kapan saja dari Manager.
+### 6. ⚡ Manajemen Daya & Wake-on-LAN (WoL)
+- **Wake-on-LAN**: Menyalakan komputer yang mati melalui transmisi UDP Magic Packet ke alamat fisik MAC address.
+- **Remote Shutdown, Restart, dan Lock Screen** massal saat sesi praktikum selesai.
 
-5. **Transfer File Jarak Jauh (File Transfer)**
-   - Kirim file materi, tugas, atau installer dari PC Manajemen ke PC Lab secara individual maupun broadcast ke banyak PC sekaligus.
-
-6. **Eksekusi Script Multi-PC (Broadcast Command)**
-   - Jalankan script PowerShell atau Batch/CMD ke seluruh komputer lab atau komputer terpilih secara bersamaan.
-   - Dilengkapi template cepat: Info Sistem, Flush DNS, Daftar Layanan Aktif, Pembersihan File Temporary, dan Ping Test.
-   - Hasil output (stdout, stderr, dan waktu eksekusi) ditampilkan per PC secara transparan di panel kontrol.
-
-7. **Manajemen Daya Lengkap**
-   - **Shutdown**: Mematikan komputer lab dari jarak jauh secara aman.
-   - **Restart**: Merestart komputer lab.
-   - **Lock Screen**: Mengunci workstation seketika untuk menjaga fokus siswa/praktikan.
-   - **Wake-on-LAN (WoL)**: Menyalakan komputer yang mati melalui pengiriman Magic Packet UDP ke port 9 dan 7 ke alamat MAC fisik.
-
-8. **Deploy Headless Agent Otomatis (Generator Script)**
-   - Menu **Generate Agent** di Manager mendeteksi IP address LAN secara otomatis.
-   - Menghasilkan dua file installer siap pakai:
-     - `install_agent.bat`: Launcher pintar dengan auto-elevasi hak akses Administrator (UAC prompt).
-     - `install_agent.ps1`: Memeriksa ping ke PC Manajemen terlebih dahulu (wajib), mengunduh binary agent berkecepatan tinggi, mengonfigurasi Windows Firewall untuk port 5901 & 5902, mendaftarkan Windows Service `LabSupportAgent` (Automatic) serta Scheduled Task (OnLogon highest privilege), dan langsung menjalankannya secara headless.
-
-9. **Database SQLite & Riwayat Aktivitas**
-   - Menyimpan daftar komputer, catatan inventaris, alamat MAC untuk Wake-on-LAN, dan riwayat aktivitas perintah secara lokal tanpa perlu konfigurasi database eksternal.
-
-10. **Dukungan Bilingual**
-    - Mendukung peralihan bahasa antarmuka secara instan antara **Bahasa Indonesia** dan **English**.
+### 7. 🔄 Zero-Touch Auto-Discovery & Dynamic IP Self-Healing
+- Ketika IP PC Guru berubah (misal router DHCP me-reset IP), PC Siswa otomatis mendeteksi IP baru melalui UDP Beacon (port `5903`) dalam kurun waktu 5–10 detik tanpa perlu setting ulang manual.
 
 ---
 
-## Struktur Proyek
+## 🌐 Port Jaringan yang Digunakan
+
+| Port | Arah Aliran | Protokol | Fungsi Utama |
+|---|---|---|---|
+| **8080** | PC Siswa ➔ PC Guru | HTTP (TCP) | Pengiriman Heartbeat, thumbnail snapshot, unduhan installer, dan file transfer |
+| **5901** | PC Guru ➔ PC Siswa | HTTP (TCP) | Streaming visual layar MJPEG untuk remote control dan presentasi |
+| **5902** | PC Guru ➔ PC Siswa | TCP Socket | Pengiriman perintah jarak jauh (Skrip, Shutdown, Lock, Exam Guard) |
+| **5903** | Dua Arah (Broadcast) | UDP Socket | Beacon Auto-Discovery & Dynamic Reconnection saat IP berubah |
+| **9 / 7** | PC Guru ➔ Subnet | UDP Broadcast | Magic Packet Wake-on-LAN untuk menghidupkan PC yang mati |
+
+---
+
+## 🚀 Panduan Memulai Cepat (Quickstart)
+
+### 1. Menjalankan PC Manajemen (Guru / Laboran)
+1. Unduh `LabSupport-Manager-v1.0.0.zip` dari [GitHub Releases](https://github.com/erickkucing/LabSupport/releases/latest).
+2. Ekstrak file ZIP ke flash disk atau folder lokal.
+3. Klik kanan `setup_manager_permissions.bat` dan pilih **Run as administrator** *(hanya perlu dijalankan satu kali untuk reservasi URL port 8080 dan Windows Firewall)*.
+4. Buka `LabSupport.Manager.exe`.
+
+### 2. Memasang Agent di PC Laboratorium (Siswa)
+1. Pada aplikasi Manager, masuk ke menu tab **Generate Agent**.
+2. Pilih IP Address LAN PC Manager yang terdeteksi, lalu klik **Generate Paket Agent**.
+3. Salin folder hasil generate ke flash disk USB (`install_agent.bat`, `install_agent.ps1`, dan `LabSupport.Agent.exe`).
+4. Tancapkan USB ke PC Siswa, lalu klik ganda **`install_agent.bat`**.
+5. Skrip akan otomatis menguji ping ke Manager, mendaftarkan Windows Service `LabSupportAgent` (*Automatic*), dan menjalankannya secara hening (*headless*).
+6. PC Siswa akan langsung tampil online di Dashboard PC Guru!
+
+---
+
+## 📂 Struktur Repositori
 
 ```
 LabSupport/
-├── LabSupport.Shared/           # Protokol, model data, SQLite service, dan HTTP/TCP helpers
-│   ├── Models/                 # ComputerInfo, ActivityLog, AppSettings
-│   ├── Protocol/               # HeartbeatMessage, CommandMessage, WolHelper, Serializer
-│   └── Services/               # DatabaseService, HttpFileServer, AgentCommandService, ScriptGenerator, WolService
-│
-├── LabSupport.Agent/            # Windows Service headless untuk PC Lab
-│   ├── Services/               # ScreenCaptureService, MjpegStreamer, CommandListener, ScriptExecutor, PowerManager, HeartbeatService
-│   ├── Worker.cs               # BackgroundService coordinator
-│   └── Program.cs              # Service host & configuration entry point
-│
-├── LabSupport.Manager/          # Aplikasi Desktop WPF untuk PC Laboran
-│   ├── Models/                 # LabComputer (WPF Observable model)
-│   ├── ViewModels/             # MainViewModel, DashboardViewModel, ScriptViewModel, RemoteViewModel, GenerateAgentViewModel, SettingsViewModel
-│   ├── Views/                  # DashboardView, ScriptView, RemoteView, GenerateAgentView, SettingsView
-│   ├── Resources/Localization/ # Strings.id-ID.xaml, Strings.en-US.xaml
-│   └── MainWindow.xaml         # Windows Fluent layout & sidebar navigation
-│
-├── LabSupport.Tests/            # Suite unit & integration test
-│   ├── ProtocolTests.cs        # Verifikasi serialisasi protokol
-│   ├── ScriptGeneratorTests.cs # Verifikasi logika script ping & deploy
-│   ├── WolTests.cs             # Verifikasi pembentukan paket Wake-on-LAN 102 bytes
-│   ├── DatabaseTests.cs        # Verifikasi operasi CRUD SQLite
-│   ├── HttpServerTests.cs      # Verifikasi HTTP health, heartbeat, dan download
-│   ├── AgentCommandTests.cs    # Verifikasi komunikasi TCP command/response
-│   └── ScriptExecutorTests.cs  # Verifikasi eksekusi script dan penanganan timeout
-│
-└── dist/                        # Binary portable siap distribusi (win-x64)
-    ├── agent/                  # LabSupport.Agent.exe
-    └── manager/                # LabSupport.Manager.exe + LabSupport.Agent.exe
+├── .github/workflows/          # Pipeline CI/CD GitHub Actions
+│   ├── ci.yml                  # Build & xUnit test otomatis di push/PR
+│   └── release.yml             # Build & publish portable ZIP ke GitHub Releases
+├── docs/                       # Dokumentasi teknis terperinci
+│   ├── ARCHITECTURE.md         # Arsitektur sistem & spesifikasi protokol
+│   └── DEPLOYMENT_GUIDE.md     # Panduan instalasi dan deployment lab
+├── LabSupport.Shared/           # Library bersama: model, protokol, dan database SQLite
+├── LabSupport.Agent/            # Headless Windows Service untuk PC Siswa/Client
+├── LabSupport.Manager/          # Aplikasi desktop WPF GUI untuk PC Laboran/Guru
+├── LabSupport.Tests/            # Suite pengujian xUnit (287 unit & integration tests)
+├── setup_manager_permissions.bat # Skrip otomasi perizinan URL ACL & Firewall Manager
+└── LabSupport.sln              # Solusi Microsoft Visual Studio / .NET 8
 ```
 
 ---
 
-## Panduan Penggunaan
+## 💻 Kompilasi dari Source Code
 
-### 1. Menjalankan PC Manajemen
-1. Salin folder `dist/manager` ke PC Laboran atau jalankan langsung dari USB flash drive.
-2. Buka `LabSupport.Manager.exe`.
-3. Server HTTP otomatis aktif di port 8080 dan siap menerima koneksi client.
+### Kebutuhan
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Git
 
-### 2. Memasang Agent di PC Laboratorium
-1. Pada aplikasi Manager, klik menu **Generate Agent**.
-2. Pilih IP Address LAN PC Manajemen (terdeteksi otomatis), lalu klik **Generate Paket Agent**.
-3. Salin folder hasil generate (`install_agent.bat`, `install_agent.ps1`, dan `LabSupport.Agent.exe`) ke USB flash drive.
-4. Colokkan USB ke PC Laboratorium dan klik ganda `install_agent.bat`.
-5. Script akan:
-   - Meminta hak Administrator jika belum aktif.
-   - Melakukan uji **ping** ke PC Manajemen untuk memverifikasi sambungan jaringan.
-   - Mengunduh binary agent (atau menyalin dari USB) ke `C:\LabSupportAgent`.
-   - Mendaftarkan Windows Service `LabSupportAgent` dengan startup *Automatic*.
-   - Menjalankan service di latar belakang secara headless.
-6. Komputer lab akan langsung muncul di Dashboard PC Manajemen dalam hitungan detik.
-
-### 3. Mengontrol Komputer Lab
-- **Remote Desktop**: Klik tombol **Remote** pada kartu komputer di Dashboard untuk memantau layar secara langsung.
-- **Kirim Script**: Buka tab **Eksekusi Script**, pilih template atau ketik script kustom, lalu klik **Jalankan Script**.
-- **Matikan / Nyalakan**: Gunakan tombol **Matikan PC** atau **Nyalakan (WoL)** pada komputer yang dipilih.
-
----
-
-## Port Jaringan yang Digunakan
-
-| Port | Arah | Protokol | Fungsi |
-|------|------|----------|--------|
-| **8080** | PC Lab ➔ PC Manajemen | HTTP (TCP) | Cek ping kesehatan, download binary agent, kirim heartbeat & screenshot |
-| **5901** | PC Manajemen ➔ PC Lab | HTTP (TCP) | Streaming layar MJPEG untuk remote control |
-| **5902** | PC Manajemen ➔ PC Lab | TCP Socket | Pengiriman perintah eksekusi script, shutdown, restart, lock screen |
-| **5903** | Dua Arah (Broadcast) | UDP Socket | Auto-Discovery Beacon & Dynamic Reconnection saat IP PC Manajemen berubah |
-| **9**    | PC Manajemen ➔ Subnet | UDP Broadcast | Magic Packet Wake-on-LAN untuk menyalakan PC |
-
----
-
-## Build & Testing
-
-### Build Seluruh Solusi
+### Kompilasi & Menjalankan Pengujian
 ```bash
-dotnet build LabSupport.sln
+# Clone repositori
+git clone https://github.com/erickkucing/LabSupport.git
+cd LabSupport
+
+# Restore dependencies
+dotnet restore LabSupport.sln
+
+# Kompilasi seluruh solusi
+dotnet build LabSupport.sln -c Release
+
+# Jalankan seluruh unit & integration tests (287 tests)
+dotnet test LabSupport.Tests/LabSupport.Tests.csproj -c Release
 ```
 
-### Menjalankan Unit & Integration Tests
+### Publish Paket Portable Mandiri (Self-Contained)
 ```bash
-dotnet test
-```
-
-### Publish Portable Executables (Self-Contained Single File)
-```bash
-# Agent (PC Lab)
+# Publish Agent (PC Siswa)
 dotnet publish LabSupport.Agent -r win-x64 --self-contained true /p:PublishSingleFile=true -c Release -o ./dist/agent
 
-# Manager (PC Laboran)
+# Publish Manager (PC Guru)
 dotnet publish LabSupport.Manager -r win-x64 --self-contained true /p:PublishSingleFile=true -c Release -o ./dist/manager
 ```
+
+---
+
+## 📜 Lisensi & Kontribusi
+
+Proyek ini didistribusikan di bawah lisensi **MIT License**. Kontribusi berupa pull request, pelaporan bug, dan saran fitur sangat dipersilakan!
