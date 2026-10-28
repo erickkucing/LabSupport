@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -13,15 +14,44 @@ public class HttpFileServer : IDisposable
 {
     private readonly int _port;
     private readonly string _configuredAgentBinaryPath;
+    private readonly ConcurrentDictionary<string, FileTransferSession> _fileSessions = new(StringComparer.OrdinalIgnoreCase);
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
     private Task? _listenTask;
 
     public event Action<HeartbeatMessage>? OnHeartbeatReceived;
+    public event Action<UnregisterAgentMessage>? OnAgentUnregisterReceived;
+    public event Action<string, int>? OnFileChunkTransferred;
     public Func<byte[]?>? PresentationFrameProvider { get; set; }
+    public Func<HeartbeatMessage, string?>? HeartbeatDirectiveEvaluator { get; set; }
+    public int StreamIntervalMs { get; set; } = 100;
+
+    public void RegisterFileSession(FileTransferSession session)
+    {
+        if (session == null || string.IsNullOrWhiteSpace(session.Token)) return;
+        _fileSessions[session.Token] = session;
+    }
+
+    public void UnregisterFileSession(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return;
+        if (_fileSessions.TryRemove(token, out var session))
+        {
+            session.Dispose();
+        }
+    }
+
+    public FileTransferSession? GetFileSession(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        _fileSessions.TryGetValue(token, out var session);
+        return session;
+    }
 
     public bool IsRunning => _listener?.IsListening ?? false;
     public int Port => _port;
+    public bool IsBoundToWildcard { get; private set; }
+    public string BoundPrefixes { get; private set; } = string.Empty;
 
     public HttpFileServer(int port = 8080, string? agentBinaryPath = null)
     {
@@ -44,10 +74,38 @@ public class HttpFileServer : IDisposable
 
         foreach (var candidate in candidates)
         {
-            if (!string.IsNullOrEmpty(candidate) && File.Exists(candidate))
+            if (string.IsNullOrEmpty(candidate)) continue;
+            try
             {
-                return candidate;
+                string fullPath = Path.GetFullPath(candidate);
+                string fileName = Path.GetFileName(fullPath);
+
+                bool isExplicitlyConfigured = !string.IsNullOrEmpty(_configuredAgentBinaryPath) &&
+                    string.Equals(fullPath, Path.GetFullPath(_configuredAgentBinaryPath), StringComparison.OrdinalIgnoreCase);
+
+                if (isExplicitlyConfigured)
+                {
+                    if (!fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                        !fileName.Equals("LabSupport.Agent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    if (!fileName.Equals("LabSupport.Agent.exe", StringComparison.OrdinalIgnoreCase) &&
+                        !fileName.Equals("LabSupport.Agent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
             }
+            catch { }
         }
 
         return null;
@@ -60,17 +118,67 @@ public class HttpFileServer : IDisposable
         _cts = new CancellationTokenSource();
         _listener = new HttpListener();
 
+        bool started = false;
         try
         {
             _listener.Prefixes.Add($"http://*:{_port}/");
             _listener.Start();
+            IsBoundToWildcard = true;
+            BoundPrefixes = $"http://*:{_port}/";
+            started = true;
         }
         catch (HttpListenerException)
         {
-            // Fallback to localhost if wildcard requires admin elevation
+            IsBoundToWildcard = false;
+            try { _listener.Close(); } catch { }
             _listener = new HttpListener();
-            _listener.Prefixes.Add($"http://127.0.0.1:{_port}/");
-            _listener.Start();
+        }
+
+        if (!started)
+        {
+            var lanIps = NetworkHelper.GetLocalIPv4Addresses();
+            var addedPrefixes = new List<string>();
+
+            foreach (var ip in lanIps)
+            {
+                if (ip != "127.0.0.1")
+                {
+                    try
+                    {
+                        string prefix = $"http://{ip}:{_port}/";
+                        _listener.Prefixes.Add(prefix);
+                        addedPrefixes.Add(prefix);
+                    }
+                    catch { }
+                }
+            }
+
+            try
+            {
+                string loopbackPrefix = $"http://127.0.0.1:{_port}/";
+                _listener.Prefixes.Add(loopbackPrefix);
+                addedPrefixes.Add(loopbackPrefix);
+            }
+            catch { }
+
+            try
+            {
+                _listener.Start();
+                BoundPrefixes = string.Join(", ", addedPrefixes);
+                started = true;
+            }
+            catch
+            {
+                try
+                {
+                    _listener.Close();
+                    _listener = new HttpListener();
+                    _listener.Prefixes.Add($"http://127.0.0.1:{_port}/");
+                    _listener.Start();
+                    BoundPrefixes = $"http://127.0.0.1:{_port}/";
+                }
+                catch { }
+            }
         }
 
         _listenTask = Task.Run(() => ListenLoopAsync(_cts.Token));
@@ -107,6 +215,36 @@ public class HttpFileServer : IDisposable
 
         try
         {
+            string rawUrl = request.RawUrl ?? string.Empty;
+            string decodedUrl = WebUtility.UrlDecode(rawUrl);
+
+            // Iterative URL decode to catch nested or double-encoding (e.g. %252e%252e or %255c)
+            string fullyDecoded = decodedUrl;
+            for (int i = 0; i < 5; i++)
+            {
+                string next = WebUtility.UrlDecode(fullyDecoded);
+                if (next == fullyDecoded) break;
+                fullyDecoded = next;
+            }
+
+            // Defensive: Detect path traversal tokens in raw, single-decoded, and fully-decoded URI
+            if (rawUrl.Contains("..") || decodedUrl.Contains("..") || fullyDecoded.Contains("..") ||
+                rawUrl.Contains("%2e", StringComparison.OrdinalIgnoreCase) ||
+                decodedUrl.Contains("%2e", StringComparison.OrdinalIgnoreCase) ||
+                fullyDecoded.Contains("%2e", StringComparison.OrdinalIgnoreCase) ||
+                rawUrl.Contains("%5c", StringComparison.OrdinalIgnoreCase) ||
+                decodedUrl.Contains("%5c", StringComparison.OrdinalIgnoreCase) ||
+                fullyDecoded.Contains("%5c", StringComparison.OrdinalIgnoreCase) ||
+                rawUrl.Contains('\\') || decodedUrl.Contains('\\') || fullyDecoded.Contains('\\'))
+            {
+                response.StatusCode = 400;
+                byte[] badReq = Encoding.UTF8.GetBytes("Bad Request: Directory traversal is prohibited.");
+                response.ContentType = "text/plain";
+                response.ContentLength64 = badReq.Length;
+                await response.OutputStream.WriteAsync(badReq, 0, badReq.Length, token);
+                return;
+            }
+
             string path = request.Url?.AbsolutePath.ToLowerInvariant() ?? "/";
             string method = request.HttpMethod.ToUpperInvariant();
 
@@ -120,6 +258,19 @@ public class HttpFileServer : IDisposable
             }
             else if (method == "GET" && path == "/agent/download")
             {
+                if (request.QueryString.Count > 0 &&
+                    (!string.IsNullOrEmpty(request.QueryString["file"]) ||
+                     !string.IsNullOrEmpty(request.QueryString["path"]) ||
+                     !string.IsNullOrEmpty(request.QueryString["download"])))
+                {
+                    response.StatusCode = 400;
+                    byte[] forbiddenMsg = Encoding.UTF8.GetBytes("Bad Request: Custom file query parameter is forbidden.");
+                    response.ContentType = "text/plain";
+                    response.ContentLength64 = forbiddenMsg.Length;
+                    await response.OutputStream.WriteAsync(forbiddenMsg, 0, forbiddenMsg.Length, token);
+                    return;
+                }
+
                 string? resolvedPath = ResolveAgentBinaryPath();
                 if (!string.IsNullOrEmpty(resolvedPath) && File.Exists(resolvedPath))
                 {
@@ -147,8 +298,35 @@ public class HttpFileServer : IDisposable
                 if (heartbeat != null)
                 {
                     OnHeartbeatReceived?.Invoke(heartbeat);
+                    string? directive = HeartbeatDirectiveEvaluator?.Invoke(heartbeat);
+
+                    var respPayload = new HeartbeatResponsePayload
+                    {
+                        Status = "accepted",
+                        Directive = directive
+                    };
+
                     response.StatusCode = 200;
-                    byte[] okBytes = Encoding.UTF8.GetBytes("{\"status\":\"accepted\"}");
+                    byte[] okBytes = Encoding.UTF8.GetBytes(MessageSerializer.Serialize(respPayload));
+                    response.ContentType = "application/json";
+                    await response.OutputStream.WriteAsync(okBytes, 0, okBytes.Length, token);
+                }
+                else
+                {
+                    response.StatusCode = 400;
+                }
+            }
+            else if (method == "POST" && path == "/agent/unregister")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string json = await reader.ReadToEndAsync(token);
+
+                var unregisterMsg = MessageSerializer.Deserialize<UnregisterAgentMessage>(json);
+                if (unregisterMsg != null)
+                {
+                    OnAgentUnregisterReceived?.Invoke(unregisterMsg);
+                    response.StatusCode = 200;
+                    byte[] okBytes = Encoding.UTF8.GetBytes("{\"status\":\"unregistered\"}");
                     response.ContentType = "application/json";
                     await response.OutputStream.WriteAsync(okBytes, 0, okBytes.Length, token);
                 }
@@ -202,10 +380,60 @@ public class HttpFileServer : IDisposable
                             await stream.FlushAsync(token);
                         }
 
-                        await Task.Delay(150, token);
+                        await Task.Delay(StreamIntervalMs, token);
                     }
                 }
                 catch { }
+            }
+            else if (method == "GET" && path.StartsWith("/files/download/"))
+            {
+                string tokenParam = path.Substring("/files/download/".Length).Trim('/');
+                if (string.IsNullOrWhiteSpace(tokenParam) || tokenParam.Contains('/') || tokenParam.Contains('\\') || tokenParam.Contains('.'))
+                {
+                    response.StatusCode = 400;
+                    byte[] errBytes = Encoding.UTF8.GetBytes("Bad Request: Invalid download token.");
+                    response.ContentType = "text/plain";
+                    response.ContentLength64 = errBytes.Length;
+                    await response.OutputStream.WriteAsync(errBytes, 0, errBytes.Length, token);
+                    return;
+                }
+
+                var session = GetFileSession(tokenParam);
+                if (session == null || !File.Exists(session.FilePath))
+                {
+                    response.StatusCode = 404;
+                    byte[] notFoundBytes = Encoding.UTF8.GetBytes("Download session not found or expired.");
+                    response.ContentType = "text/plain";
+                    response.ContentLength64 = notFoundBytes.Length;
+                    await response.OutputStream.WriteAsync(notFoundBytes, 0, notFoundBytes.Length, token);
+                    return;
+                }
+
+                try
+                {
+                    response.StatusCode = 200;
+                    response.ContentType = session.ContentType;
+                    response.ContentLength64 = session.FileSize;
+                    response.AddHeader("Content-Disposition", $"attachment; filename=\"{WebUtility.UrlEncode(session.FileName)}\"");
+                    if (!string.IsNullOrWhiteSpace(session.Sha256Hash))
+                    {
+                        response.AddHeader("X-Checksum-SHA256", session.Sha256Hash);
+                    }
+
+                    using var fs = new FileStream(session.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 64 * 1024, useAsync: true);
+                    byte[] buffer = new byte[64 * 1024];
+                    int bytesRead;
+                    while ((bytesRead = await fs.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+                    {
+                        await response.OutputStream.WriteAsync(buffer, 0, bytesRead, token);
+                        session.AddBytesTransferred(bytesRead);
+                        OnFileChunkTransferred?.Invoke(session.Token, bytesRead);
+                    }
+                    await response.OutputStream.FlushAsync(token);
+                }
+                catch (HttpListenerException) { }
+                catch (OperationCanceledException) { }
+                catch (Exception) { /* Stream write failed, e.g. client disconnected midway */ }
             }
             else
             {
@@ -238,5 +466,10 @@ public class HttpFileServer : IDisposable
     {
         Stop();
         _cts?.Dispose();
+        foreach (var session in _fileSessions.Values)
+        {
+            session.Dispose();
+        }
+        _fileSessions.Clear();
     }
 }

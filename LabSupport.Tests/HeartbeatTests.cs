@@ -10,10 +10,11 @@ public class HeartbeatTests
     [Fact]
     public void CollectHeartbeatData_ShouldProvideValidSystemTelemetry()
     {
-        var service = new HeartbeatService("127.0.0.1", 8080);
+        var service = new HeartbeatService("127.0.0.1", 8080, 5, "LAB-TEST-01");
         var hb = service.CollectHeartbeatData();
 
         Assert.NotNull(hb);
+        Assert.Equal("LAB-TEST-01", hb.ManagerId);
         Assert.False(string.IsNullOrWhiteSpace(hb.Hostname));
         Assert.False(string.IsNullOrWhiteSpace(hb.IpAddress));
         Assert.False(string.IsNullOrWhiteSpace(hb.MacAddress));
@@ -21,6 +22,18 @@ public class HeartbeatTests
         Assert.True(hb.RamUsageMb >= 0, "Used RAM should be non-negative.");
         Assert.InRange(hb.CpuUsage, 0.0, 100.0);
         Assert.False(string.IsNullOrWhiteSpace(hb.ScreenshotBase64));
+    }
+
+    [Fact]
+    public void CollectHeartbeatData_WithCustomRoomAndDisplayName_ShouldEmbedInHeartbeat()
+    {
+        var service = new HeartbeatService("127.0.0.1", 8080, 5, "LAB-MGR-99", null, null, "Lab 209A", "PC-209A-15");
+        var hb = service.CollectHeartbeatData();
+
+        Assert.NotNull(hb);
+        Assert.Equal("Lab 209A", hb.RoomName);
+        Assert.Equal("PC-209A-15", hb.DisplayName);
+        Assert.Equal("LAB-MGR-99", hb.ManagerId);
     }
 
     [Fact]

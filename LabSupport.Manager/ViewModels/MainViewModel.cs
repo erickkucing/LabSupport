@@ -41,6 +41,8 @@ public class MainViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _serverStatus, value);
     }
 
+    public ManagerBeaconService? BeaconService { get; private set; }
+
     public ICommand NavigateDashboardCommand { get; }
     public ICommand NavigateScriptCommand { get; }
     public ICommand NavigateRemoteCommand { get; }
@@ -56,8 +58,8 @@ public class MainViewModel : ViewModelBase, IDisposable
 
         DashboardVM = new DashboardViewModel(DatabaseService, CommandService, WolService, HttpFileServer);
         ScriptVM = new ScriptViewModel(CommandService, DatabaseService, DashboardVM.Computers);
-        RemoteVM = new RemoteViewModel(CommandService);
-        GenerateAgentVM = new GenerateAgentViewModel();
+        RemoteVM = new RemoteViewModel(CommandService, null, HttpFileServer);
+        GenerateAgentVM = new GenerateAgentViewModel(DatabaseService);
         SettingsVM = new SettingsViewModel(DatabaseService);
 
         _currentViewModel = DashboardVM;
@@ -109,13 +111,38 @@ public class MainViewModel : ViewModelBase, IDisposable
             ActiveViewName = "Script";
         };
 
-        // Wire Heartbeat event
+        // Wire ManagerId sync when generated in GenerateAgentVM
+        GenerateAgentVM.OnManagerIdChanged += newId =>
+        {
+            CommandService.ManagerId = newId;
+            DashboardVM.CurrentManagerId = newId;
+            string currentLanIp = NetworkHelper.GetPrimaryLanIPv4Address();
+            BeaconService?.UpdateEndpoint(currentLanIp, HttpFileServer.Port, newId);
+            ServerStatus = $"Server HTTP Aktif (Port {HttpFileServer.Port}) | Lab Code: {newId}";
+        };
+
+        // Wire Heartbeat event with off-UI background thumbnail decoding
         HttpFileServer.OnHeartbeatReceived += hb =>
         {
-            Application.Current?.Dispatcher.Invoke(() =>
+            System.Windows.Media.Imaging.BitmapSource? frozenThumb = null;
+            if (!string.IsNullOrEmpty(hb.ScreenshotBase64))
             {
-                DashboardVM.HandleHeartbeat(hb);
-            });
+                try
+                {
+                    byte[] thumbBytes = Convert.FromBase64String(hb.ScreenshotBase64);
+                    frozenThumb = Models.LabComputer.CreateFrozenBitmap(thumbBytes);
+                }
+                catch { }
+            }
+
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null)
+            {
+                dispatcher.BeginInvoke(() =>
+                {
+                    DashboardVM.HandleHeartbeat(hb, frozenThumb);
+                });
+            }
         };
 
         // Start services
@@ -127,10 +154,20 @@ public class MainViewModel : ViewModelBase, IDisposable
         try
         {
             await DatabaseService.InitializeAsync();
+            string managerId = await DatabaseService.GetOrCreateManagerIdAsync();
+            CommandService.ManagerId = managerId;
+            DashboardVM.CurrentManagerId = managerId;
+            GenerateAgentVM.ManagerId = managerId;
+
             await DashboardVM.LoadComputersFromDbAsync();
 
             HttpFileServer.Start();
-            ServerStatus = $"Server HTTP Aktif (Port {HttpFileServer.Port})";
+            string currentLanIp = NetworkHelper.GetPrimaryLanIPv4Address();
+            BeaconService = new ManagerBeaconService(managerId, currentLanIp, HttpFileServer.Port);
+            BeaconService.Start();
+
+            string bindStatus = HttpFileServer.IsBoundToWildcard ? "Wildcard (Semua IP)" : HttpFileServer.BoundPrefixes;
+            ServerStatus = $"Server Aktif: {bindStatus} | Lab Code: {managerId} | UDP Beacon: Aktif";
         }
         catch (Exception ex)
         {
@@ -140,6 +177,7 @@ public class MainViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        BeaconService?.Dispose();
         HttpFileServer.Dispose();
         RemoteVM.Dispose();
         DatabaseService.Dispose();

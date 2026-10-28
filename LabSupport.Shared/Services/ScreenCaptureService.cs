@@ -142,6 +142,63 @@ public class ScreenCaptureService
         }
     }
 
+    public static ulong ComputeBitmapSampleHash(Bitmap bmp)
+    {
+        ulong hash = 14695981039346656037UL;
+        int w = bmp.Width;
+        int h = bmp.Height;
+        if (w <= 0 || h <= 0) return 0;
+
+        int stepX = Math.Max(1, w / 8);
+        int stepY = Math.Max(1, h / 8);
+
+        for (int y = 0; y < h; y += stepY)
+        {
+            for (int x = 0; x < w; x += stepX)
+            {
+                var color = bmp.GetPixel(x, y);
+                hash ^= (ulong)color.ToArgb();
+                hash *= 1099511628211UL;
+            }
+        }
+
+        return hash;
+    }
+
+    public virtual byte[]? CaptureScreenAdaptiveJpeg(ref ulong lastHash, int quality = 65, int targetWidth = 0, int targetHeight = 0)
+    {
+        try
+        {
+            using var bmp = CaptureScreen();
+            ulong currentHash = ComputeBitmapSampleHash(bmp);
+            if (currentHash == lastHash && lastHash != 0)
+            {
+                return null;
+            }
+
+            lastHash = currentHash;
+
+            if (targetWidth > 0 && targetHeight > 0 && (bmp.Width != targetWidth || bmp.Height != targetHeight))
+            {
+                using var scaled = new Bitmap(targetWidth, targetHeight);
+                using (var g = Graphics.FromImage(scaled))
+                {
+                    g.InterpolationMode = InterpolationMode.Bilinear;
+                    g.SmoothingMode = SmoothingMode.None;
+                    g.PixelOffsetMode = PixelOffsetMode.Half;
+                    g.DrawImage(bmp, 0, 0, targetWidth, targetHeight);
+                }
+                return BitmapToJpegBytes(scaled, quality);
+            }
+
+            return BitmapToJpegBytes(bmp, quality);
+        }
+        catch
+        {
+            return MinimalJpegBytes;
+        }
+    }
+
     public virtual byte[] CaptureThumbnailJpeg(int width = 320, int height = 180, int quality = 60)
     {
         try
@@ -150,9 +207,9 @@ public class ScreenCaptureService
             using var thumb = new Bitmap(width, height);
             using (var g = Graphics.FromImage(thumb))
             {
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.SmoothingMode = SmoothingMode.HighQuality;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.InterpolationMode = InterpolationMode.Bilinear;
+                g.SmoothingMode = SmoothingMode.None;
+                g.PixelOffsetMode = PixelOffsetMode.Half;
                 g.DrawImage(fullBmp, 0, 0, width, height);
             }
 

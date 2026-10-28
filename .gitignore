@@ -1,6 +1,21 @@
 bin/
 obj/
 dist/
+publish/
 *.user
 *.suo
 .vs/
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Agent & temporary scratch
+.agents/
+stub_wpf/
+*.log

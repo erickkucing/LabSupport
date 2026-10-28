@@ -3,74 +3,474 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:vm="clr-namespace:LabSupport.Manager.ViewModels"
+             xmlns:models="clr-namespace:LabSupport.Shared.Models;assembly=LabSupport.Shared"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance vm:ScriptViewModel}"
-             d:DesignHeight="700" d:DesignWidth="1000">
+             d:DesignHeight="800" d:DesignWidth="1100">
     <Grid Background="{StaticResource BgDark}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="480"/>
+            <ColumnDefinition Width="520"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Left Column: Script Editor & Controls -->
-        <Border Grid.Column="0" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,0,1,0" Padding="20">
+        <!-- Left Column: Dual-Mode Workspace (Visual Builder & Code Editor) -->
+        <Border Grid.Column="0" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,0,1,0" Padding="16">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/> <!-- Title & Tab Selector -->
+                    <RowDefinition Height="*"/>    <!-- Active Mode Content -->
+                    <RowDefinition Height="Auto"/> <!-- Common Target & Execution Bar -->
                 </Grid.RowDefinitions>
 
-                <!-- Header -->
-                <TextBlock Grid.Row="0" Text="{DynamicResource Str_ScriptTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16"/>
+                <!-- Row 0: Header & Dual-Mode Tab Switcher -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                    <TextBlock Text="{DynamicResource Str_ScriptTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
+                    
+                    <!-- Mode Switch Buttons -->
+                    <Border Background="{StaticResource BgDark}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Padding="3">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <RadioButton Grid.Column="0" Content="{DynamicResource Str_TabVisualBuilder}" IsChecked="{Binding IsVisualMode}" Style="{StaticResource NavButton}" HorizontalAlignment="Stretch" Margin="0"/>
+                            <RadioButton Grid.Column="1" Content="{DynamicResource Str_TabCodeEditor}" IsChecked="{Binding IsCodeMode}" Style="{StaticResource NavButton}" HorizontalAlignment="Stretch" Margin="0"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
 
-                <!-- Config Options (Type & Target) -->
-                <StackPanel Grid.Row="1" Margin="0,0,0,14">
-                    <TextBlock Text="{DynamicResource Str_ScriptType}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,6"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <RadioButton Content="PowerShell (.ps1)" IsChecked="True" Foreground="{StaticResource TextPrimary}" Margin="0,0,16,0"/>
-                        <RadioButton Content="Command Prompt (.bat)" Foreground="{StaticResource TextPrimary}"/>
+                <!-- Row 1: Mode Contents -->
+                <!-- Mode 1: Visual Builder -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,12">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsVisualMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+
+                    <StackPanel>
+                        <!-- AI Assistant Trigger Bar -->
+                        <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{DynamicResource Str_BtnAiRecipe}" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" FontSize="13"/>
+                                        <TextBlock Text="{DynamicResource Str_AiPromptDesc}" Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="🤖 AI Assistant" Command="{Binding ToggleAiPromptCommand}" Style="{StaticResource PrimaryButton}" Padding="10,6" FontSize="11"/>
+                                </Grid>
+
+                                <!-- Expandable AI Prompt Input Box -->
+                                <Border Margin="0,8,0,0" Padding="10" Background="{StaticResource BgDark}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsAiPromptOpen}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource Str_AiPromptTitle}" FontWeight="SemiBold" Foreground="{StaticResource AccentBlue}" FontSize="11" Margin="0,0,0,4"/>
+                                        <TextBox Text="{Binding AiPromptText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="50"
+                                                 Background="{StaticResource BgCard}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}"
+                                                 FontSize="11" Padding="6" Margin="0,0,0,8" ToolTip="{DynamicResource Str_AiPromptPlaceholder}"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding AiStatusMessage}" Foreground="{StaticResource TextSecondary}" FontSize="10" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            <Button Grid.Column="1" Content="{DynamicResource Str_BtnGenerateWithAi}" Command="{Binding GenerateWithAiCommand}" Style="{StaticResource PrimaryButton}" Padding="10,5" FontSize="11"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Recipe Preset Templates -->
+                        <TextBlock Text="{DynamicResource Str_RecipePresets}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <WrapPanel Margin="0,0,0,10">
+                            <Button Content="🧹 Deep Clean" Command="{Binding ApplyPresetCommand}" CommandParameter="preset-deep-clean" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="📝 Persiapan Ujian" Command="{Binding ApplyPresetCommand}" CommandParameter="preset-exam-prep" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="🔄 Pasca Ujian" Command="{Binding ApplyPresetCommand}" CommandParameter="preset-post-exam" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="🚀 Luncurkan Lab" Command="{Binding ApplyPresetCommand}" CommandParameter="preset-launch-lab" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="📦 Software Standar" Command="{Binding ApplyPresetCommand}" CommandParameter="preset-install-software" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="⏰ Matikan Terjadwal" Command="{Binding ApplyPresetCommand}" CommandParameter="preset-scheduled-shutdown" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                        </WrapPanel>
+
+                        <!-- Recipe File I/O Toolbar -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="{DynamicResource Str_BtnOpenRecipe}" Command="{Binding LoadRecipeCommand}" Style="{StaticResource SecondaryButton}" Padding="6,4" FontSize="11" Margin="0,0,4,0"/>
+                            <Button Grid.Column="1" Content="{DynamicResource Str_BtnSaveRecipe}" Command="{Binding SaveRecipeCommand}" Style="{StaticResource SecondaryButton}" Padding="6,4" FontSize="11" Margin="0,0,4,0"/>
+                            <Button Grid.Column="2" Content="{DynamicResource Str_BtnExportBat}" Command="{Binding ExportBatchScriptCommand}" Style="{StaticResource SecondaryButton}" Padding="6,4" FontSize="11" Margin="0,0,4,0"/>
+                            <Button Grid.Column="3" Content="{DynamicResource Str_BtnClearRecipe}" Command="{Binding ClearRecipeCommand}" Style="{StaticResource SecondaryButton}" Padding="6,4" FontSize="11"/>
+                        </Grid>
+
+                        <!-- Action Catalog (12 Actions) -->
+                        <TextBlock Text="{DynamicResource Str_AddAction}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <WrapPanel Margin="0,0,0,10">
+                            <Button Content="{DynamicResource Str_ActionClearTemp}" Command="{Binding AddActionCommand}" CommandParameter="ClearTempCache" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionFlushDns}" Command="{Binding AddActionCommand}" CommandParameter="FlushDnsNetwork" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionLaunchExe}" Command="{Binding AddActionCommand}" CommandParameter="LaunchExecutable" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionInstallWinget}" Command="{Binding AddActionCommand}" CommandParameter="InstallWingetSoftware" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionKillProcess}" Command="{Binding AddActionCommand}" CommandParameter="KillProcess" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionLockUsb}" Command="{Binding AddActionCommand}" CommandParameter="SetUsbStorageLock" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionOpenUrl}" Command="{Binding AddActionCommand}" CommandParameter="OpenUrlBrowser" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionSetVolume}" Command="{Binding AddActionCommand}" CommandParameter="SetSystemVolume" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionSetWallpaper}" Command="{Binding AddActionCommand}" CommandParameter="SetWallpaper" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionShutdownRestart}" Command="{Binding AddActionCommand}" CommandParameter="ShutdownRestart" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionLogoff}" Command="{Binding AddActionCommand}" CommandParameter="LogoffUser" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource Str_ActionCustomPowerShell}" Command="{Binding AddActionCommand}" CommandParameter="CustomPowerShellBlock" Style="{StaticResource SecondaryButton}" Padding="6,3" FontSize="10" Margin="0,0,4,4"/>
+                        </WrapPanel>
+
+                        <!-- Action Sequence List -->
+                        <TextBlock Text="{DynamicResource Str_ActionSequenceTitle}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <ItemsControl ItemsSource="{Binding ActionSteps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type models:ScriptActionStep}">
+                                    <Border Style="{StaticResource ModernCard}" Margin="0,0,0,8" Padding="10">
+                                        <StackPanel>
+                                            <!-- Card Header -->
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <TextBox Grid.Column="1" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource TextPrimary}" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                    <Button Content="▲" Command="{Binding DataContext.MoveUpStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource SecondaryButton}" Padding="5,2" FontSize="10" Margin="0,0,3,0"/>
+                                                    <Button Content="▼" Command="{Binding DataContext.MoveDownStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource SecondaryButton}" Padding="5,2" FontSize="10" Margin="0,0,3,0"/>
+                                                    <Button Content="🗑️" Command="{Binding DataContext.RemoveStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource SecondaryButton}" Padding="5,2" FontSize="10"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- Form: ClearTempCache -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.ClearTempCache}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="Membersihkan file cache %TEMP%, Windows Temp, dan Recycle Bin." Foreground="{StaticResource TextMuted}" FontSize="10"/>
+                                            </StackPanel>
+
+                                            <!-- Form: FlushDnsNetwork -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.FlushDnsNetwork}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="Mereset cache DNS dan memperbarui konfigurasi DHCP IP (flushdns &amp; renew)." Foreground="{StaticResource TextMuted}" FontSize="10"/>
+                                            </StackPanel>
+
+                                            <!-- Form: LaunchExecutable -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.LaunchExecutable}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_ExePath}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2" Margin="0,0,0,4"/>
+                                                <TextBlock Text="{DynamicResource Str_ExeArgs}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2" Margin="0,0,0,4"/>
+                                                <TextBlock Text="{DynamicResource Str_ExeMode}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding LaunchMode, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11">
+                                                    <ComboBoxItem Content="{DynamicResource Str_ExeModeInteractive}" Tag="{x:Static models:ExecutableLaunchMode.InteractiveElevated}"/>
+                                                    <ComboBoxItem Content="{DynamicResource Str_ExeModeBackground}" Tag="{x:Static models:ExecutableLaunchMode.BackgroundSilent}"/>
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <!-- Form: InstallWingetSoftware -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.InstallWingetSoftware}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_PackageId}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding WingetPackageId, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2"/>
+                                            </StackPanel>
+
+                                            <!-- Form: KillProcess -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.KillProcess}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_ProcessName}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding ProcessName, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2"/>
+                                            </StackPanel>
+
+                                            <!-- Form: SetUsbStorageLock -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.SetUsbStorageLock}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_UsbStatus}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding UsbLocked, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11">
+                                                    <ComboBoxItem Content="{DynamicResource Str_UsbLock}">
+                                                        <ComboBoxItem.Tag>
+                                                            <sys:Boolean>True</sys:Boolean>
+                                                        </ComboBoxItem.Tag>
+                                                    </ComboBoxItem>
+                                                    <ComboBoxItem Content="{DynamicResource Str_UsbUnlock}">
+                                                        <ComboBoxItem.Tag>
+                                                            <sys:Boolean>False</sys:Boolean>
+                                                        </ComboBoxItem.Tag>
+                                                    </ComboBoxItem>
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <!-- Form: OpenUrlBrowser -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.OpenUrlBrowser}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_TargetUrl}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2"/>
+                                            </StackPanel>
+
+                                            <!-- Form: SetSystemVolume -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.SetSystemVolume}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_VolumeLevel}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding VolumeLevel, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2"/>
+                                            </StackPanel>
+
+                                            <!-- Form: SetWallpaper -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.SetWallpaper}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_ActionSetWallpaper}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding WallpaperPath, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2"/>
+                                            </StackPanel>
+
+                                            <!-- Form: ShutdownRestart -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.ShutdownRestart}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_ShutdownAction}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding ShutdownAction, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Margin="0,0,0,4">
+                                                    <ComboBoxItem Content="{DynamicResource Str_Shutdown}" Tag="Shutdown"/>
+                                                    <ComboBoxItem Content="{DynamicResource Str_Restart}" Tag="Restart"/>
+                                                </ComboBox>
+                                                <TextBlock Text="{DynamicResource Str_DelaySeconds}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding DelaySeconds, UpdateSourceTrigger=PropertyChanged}" Background="{StaticResource BgDark}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderBrushColor}" FontSize="11" Padding="4,2"/>
+                                            </StackPanel>
+
+                                            <!-- Form: LogoffUser -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.LogoffUser}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="Melakukan log off sesi pengguna aktif (shutdown.exe /l)." Foreground="{StaticResource TextMuted}" FontSize="10"/>
+                                            </StackPanel>
+
+                                            <!-- Form: CustomPowerShellBlock -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ActionType}" Value="{x:Static models:ScriptActionType.CustomPowerShellBlock}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{DynamicResource Str_ActionCustomPowerShell}" Foreground="{StaticResource TextSecondary}" FontSize="10" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding CustomScript, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" Height="70"
+                                                         FontFamily="Consolas, Cascadia Code, Courier New" FontSize="11"
+                                                         Background="{StaticResource BgDark}" Foreground="#E2E8F0" BorderBrush="{StaticResource BorderBrushColor}" Padding="4"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Live Script Preview Expander -->
+                        <Expander Header="{DynamicResource Str_LiveScriptPreview}" Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="0,6,0,0">
+                            <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,4,0,0">
+                                <StackPanel>
+                                    <Button Content="🔄 Refresh Preview" Command="{Binding RefreshPreviewCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Padding="6,2" FontSize="10" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding ScriptContent, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                                             FontFamily="Consolas, Cascadia Code, Courier New" FontSize="10" Height="120"
+                                             Foreground="#A7F3D0" Background="{StaticResource BgDark}" BorderThickness="0"
+                                             Padding="6" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+                                </StackPanel>
+                            </Border>
+                        </Expander>
                     </StackPanel>
+                </ScrollViewer>
 
-                    <TextBlock Text="{DynamicResource Str_ScriptTarget}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,6"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <RadioButton Content="{DynamicResource Str_TargetAllOnline}" IsChecked="True" Foreground="{StaticResource TextPrimary}" Margin="0,0,16,0"/>
-                        <RadioButton Content="{DynamicResource Str_TargetSelected}" Foreground="{StaticResource TextPrimary}"/>
+                <!-- Mode 2: Code Editor -->
+                <Grid Grid.Row="1" Margin="0,0,0,12">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCodeMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Script Type -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="{DynamicResource Str_ScriptType}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="PowerShell (.ps1)" IsChecked="True" Foreground="{StaticResource TextPrimary}" Margin="0,0,16,0"/>
+                            <RadioButton Content="Command Prompt (.bat)" Foreground="{StaticResource TextPrimary}"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Quick Templates -->
-                    <TextBlock Text="{DynamicResource Str_Templates}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,6"/>
-                    <WrapPanel Orientation="Horizontal">
-                        <Button Content="Info Sistem" Command="{Binding SelectTemplateCommand}" CommandParameter="SysInfo" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
-                        <Button Content="Flush DNS" Command="{Binding SelectTemplateCommand}" CommandParameter="FlushDns" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
-                        <Button Content="List Service" Command="{Binding SelectTemplateCommand}" CommandParameter="ListServices" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
-                        <Button Content="Hapus Temp" Command="{Binding SelectTemplateCommand}" CommandParameter="ClearTemp" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
-                        <Button Content="Ping 8.8.8.8" Command="{Binding SelectTemplateCommand}" CommandParameter="PingTest" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
-                    </WrapPanel>
-                </StackPanel>
+                    <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                        <TextBlock Text="{DynamicResource Str_Templates}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Content="Info Sistem" Command="{Binding SelectTemplateCommand}" CommandParameter="SysInfo" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="Flush DNS" Command="{Binding SelectTemplateCommand}" CommandParameter="FlushDns" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="List Service" Command="{Binding SelectTemplateCommand}" CommandParameter="ListServices" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="Hapus Temp" Command="{Binding SelectTemplateCommand}" CommandParameter="ClearTemp" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                            <Button Content="Ping 8.8.8.8" Command="{Binding SelectTemplateCommand}" CommandParameter="PingTest" Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Margin="0,0,6,6"/>
+                        </WrapPanel>
+                    </StackPanel>
 
-                <!-- Script Editor Box -->
-                <Border Grid.Row="3" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,16">
-                    <TextBox Text="{Binding ScriptContent, UpdateSourceTrigger=PropertyChanged}"
-                             AcceptsReturn="True" AcceptsTab="True"
-                             FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12"
-                             Foreground="#E2E8F0" Background="Transparent" BorderThickness="0"
-                             Padding="12" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
-                </Border>
-
-                <!-- Action Buttons -->
-                <Grid Grid.Row="4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Button Grid.Column="0" Content="{DynamicResource Str_BtnRunScript}" Command="{Binding ExecuteCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,10,0"/>
-                    <Button Grid.Column="1" Content="{DynamicResource Str_BtnClearResults}" Command="{Binding ClearResultsCommand}" Style="{StaticResource SecondaryButton}"/>
+                    <!-- Script Editor Box -->
+                    <Border Grid.Row="2" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6">
+                        <TextBox Text="{Binding ScriptContent, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True" AcceptsTab="True"
+                                 FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12"
+                                 Foreground="#E2E8F0" Background="Transparent" BorderThickness="0"
+                                 Padding="12" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+                    </Border>
                 </Grid>
+
+                <!-- Row 2: Common Execution & Target Controls -->
+                <Border Grid.Row="2" Background="{StaticResource BgDark}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+                    <StackPanel>
+                        <!-- Target Selection -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource Str_ScriptTarget}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <RadioButton Content="{DynamicResource Str_TargetAllOnline}" IsChecked="True" Foreground="{StaticResource TextPrimary}" Margin="0,0,12,0"/>
+                            <RadioButton Content="{DynamicResource Str_TargetSelected}" Foreground="{StaticResource TextPrimary}"/>
+                        </StackPanel>
+
+                        <!-- Execution Buttons -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="{DynamicResource Str_BtnRunScript}" Command="{Binding ExecuteCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,10,0"/>
+                            <Button Grid.Column="1" Content="{DynamicResource Str_BtnClearResults}" Command="{Binding ClearResultsCommand}" Style="{StaticResource SecondaryButton}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 

@@ -154,6 +154,7 @@ LabSupport/
 | **8080** | PC Lab ➔ PC Manajemen | HTTP (TCP) | Cek ping kesehatan, download binary agent, kirim heartbeat & screenshot |
 | **5901** | PC Manajemen ➔ PC Lab | HTTP (TCP) | Streaming layar MJPEG untuk remote control |
 | **5902** | PC Manajemen ➔ PC Lab | TCP Socket | Pengiriman perintah eksekusi script, shutdown, restart, lock screen |
+| **5903** | Dua Arah (Broadcast) | UDP Socket | Auto-Discovery Beacon & Dynamic Reconnection saat IP PC Manajemen berubah |
 | **9**    | PC Manajemen ➔ Subnet | UDP Broadcast | Magic Packet Wake-on-LAN untuk menyalakan PC |
 
 ---

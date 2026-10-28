@@ -9,6 +9,25 @@ public class PowerManager
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool LockWorkStation();
 
+    [DllImport("powrprof.dll", SetLastError = true)]
+    private static extern bool SetSuspendState(bool hibernate, bool forceCritical, bool disableWakeEvent);
+
+    public virtual bool Sleep()
+    {
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return SetSuspendState(false, true, false);
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public virtual bool Shutdown()
     {
         try

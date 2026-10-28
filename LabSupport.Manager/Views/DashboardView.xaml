@@ -7,8 +7,224 @@
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance vm:DashboardViewModel}"
              d:DesignHeight="700" d:DesignWidth="1000">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <DataTemplate x:Key="ComputerCardTemplate">
+            <Border Margin="6" Style="{StaticResource ModernCard}" Padding="10" Width="230" MinHeight="285">
+                <Border.ContextMenu>
+                    <ContextMenu Background="{StaticResource BgSidebar}" Foreground="{StaticResource TextPrimary}">
+                        <MenuItem Header="📍 Pindahkan ke Ruang..." Command="{Binding DataContext.AssignRoomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding RoomName}"/>
+                        <MenuItem Header="🏷️ Atur Grup..." Command="{Binding DataContext.AssignGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding GroupName}"/>
+                        <Separator/>
+                        <MenuItem Header="🔍 Rincian Hardware..." Command="{Binding DataContext.ShowHardwareDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="⚠️ Teguran Bandwidth..." Command="{Binding DataContext.ThrottleBandwidthHogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                        <Separator/>
+                        <MenuItem Header="⚡ Nyalakan (Wake-on-LAN)" Command="{Binding DataContext.WakeSingleComputerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="🖥️ Remote Layar" Command="{Binding DataContext.OpenRemoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                        <Separator/>
+                        <MenuItem Header="🗑️ Hapus PC &amp; Uninstall Agent..." Command="{Binding DataContext.DeleteComputerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Foreground="#EF4444"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="100"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header: Checkbox + Draggable Hostname + Status Dot -->
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Thumb Grid.Column="1" DragDelta="OnTileDragDelta" DragCompleted="OnTileDragCompleted" Cursor="SizeAll">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Border Background="Transparent" Padding="2,0">
+                                        <TextBlock Text="{Binding EffectiveName}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Hostname}"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                        <Ellipse Grid.Column="2" Width="10" Height="10" Fill="{Binding StatusBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </Grid>
+
+                    <!-- Thumbnail Screen Preview -->
+                    <Border Grid.Row="1" Background="#0F172A" CornerRadius="4" ClipToBounds="True" Margin="0,0,0,8">
+                        <Grid>
+                            <Image Source="{Binding ThumbnailSource}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="No Preview" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ThumbnailSource}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <!-- Health Alert Badges (Top Left Overlay) -->
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4">
+                                <!-- Bandwidth Hog Alert -->
+                                <Border Background="#D9DC2626" BorderBrush="#EF4444" BorderThickness="1" CornerRadius="3" Padding="4,2" Margin="0,0,0,2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsBandwidthHog}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="⚠️ Net Hog" FontSize="9" FontWeight="Bold" Foreground="White" ToolTip="PC ini memakai bandwidth &gt; 3 MB/s"/>
+                                </Border>
+
+                                <!-- Low Disk Alert -->
+                                <Border Background="#D9D97706" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="3" Padding="4,2" Margin="0,0,0,2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLowDiskSpace}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="💾 Disk Rendah" FontSize="9" FontWeight="Bold" Foreground="White" ToolTip="{Binding DiskStorageFormatted}"/>
+                                </Border>
+
+                                <!-- High RAM Alert -->
+                                <Border Background="#D97C3AED" BorderBrush="#8B5CF6" BorderThickness="1" CornerRadius="3" Padding="4,2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsHighRamUsage}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="⚡ RAM 90%+" FontSize="9" FontWeight="Bold" Foreground="White" ToolTip="{Binding RamFormatted}"/>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Inactivity / Idle Badge Overlay -->
+                            <Border Background="#D978350F" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="3" Padding="4,2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsIdle}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding IdleFormatted}" FontSize="9" FontWeight="Bold" Foreground="#FEF3C7"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- IP, MAC, Bandwidth & Group Details -->
+                    <StackPanel Grid.Row="2" Margin="0,0,0,6">
+                        <Grid>
+                            <TextBlock Text="{Binding IpAddress}" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Border Background="#1E293B" CornerRadius="3" Padding="4,1" Margin="0,0,4,0">
+                                    <TextBlock Text="{Binding RoomName}" FontSize="9" Foreground="#38BDF8" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="{Binding GroupName}" FontSize="10" Foreground="{StaticResource AccentBlue}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Grid>
+                        <Grid Margin="0,1,0,0">
+                            <TextBlock Text="{Binding MacAddress}" FontSize="9" Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding NetworkFormatted}" FontSize="9" HorizontalAlignment="Right" FontWeight="SemiBold" ToolTip="Kecepatan Jaringan Real-time (Download / Upload)">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsBandwidthHog}" Value="True">
+                                                <Setter Property="Foreground" Value="#EF4444"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- CPU / RAM Mini Bars -->
+                    <Grid Grid.Row="3" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                            <TextBlock Text="{Binding CpuFormatted}" FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                            <ProgressBar Value="{Binding CpuUsage}" Maximum="100" Height="4" Background="#334155" Foreground="{StaticResource AccentBlue}" BorderThickness="0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                            <TextBlock Text="{Binding RamFormatted}" FontSize="10" Foreground="{StaticResource TextSecondary}" TextTrimming="CharacterEllipsis"/>
+                            <ProgressBar Value="{Binding RamPercent}" Maximum="100" Height="4" Background="#334155" Foreground="{StaticResource AccentGreen}" BorderThickness="0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Quick Actions per PC -->
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Padding="2,4" Margin="0,0,2,0" FontSize="10">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                    <Setter Property="Content" Value="Remote"/>
+                                    <Setter Property="Command" Value="{Binding DataContext.OpenRemoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    <Setter Property="CommandParameter" Value="{Binding}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsOnline}" Value="False">
+                                            <Setter Property="Content" Value="⚡ Nyalakan"/>
+                                            <Setter Property="Command" Value="{Binding DataContext.WakeSingleComputerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            <Setter Property="Background" Value="#D97706"/>
+                                            <Setter Property="ToolTip" Value="Kirim Wake-on-LAN Magic Packet untuk menyalakan PC ini"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Grid.Column="1" Content="Script"
+                                Command="{Binding DataContext.OpenScriptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                IsEnabled="{Binding IsOnline}"
+                                Style="{StaticResource SecondaryButton}" Padding="2,4" Margin="2,0,2,0" FontSize="10"/>
+                        <Button Grid.Column="2" Content="Siarkan"
+                                Command="{Binding DataContext.StartStudentBroadcastCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                IsEnabled="{Binding IsOnline}"
+                                Style="{StaticResource SecondaryButton}" Padding="2,4" Margin="2,0,0,0" FontSize="10"
+                                ToolTip="Siarkan layar siswa ini ke semua PC lain"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
     <Grid Background="{StaticResource BgDark}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -48,33 +264,127 @@
             </Border>
         </Grid>
 
+        <!-- Room Category Pill Bar (Top Navigation & Quota Display) -->
+        <Border Grid.Row="1" Background="#0B0F19" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,1,0,1" Padding="20,8">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding AvailableRooms}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding DataContext.FilterByRoomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding Name}"
+                                    Margin="0,0,8,0" Padding="12,6" Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Setter Property="Background" Value="#1E293B"/>
+                                        <Setter Property="BorderBrush" Value="#334155"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Background" Value="#2563EB"/>
+                                                <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="📍 " FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                    <Border Background="#0F172A" CornerRadius="10" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding QuotaDisplay}" FontSize="10" FontWeight="SemiBold" Foreground="#38BDF8"/>
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
         <!-- Toolbar & Filter Bar -->
-        <Border Grid.Row="1" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,1,0,1" Padding="20,10" Margin="0,0,0,12">
+        <Border Grid.Row="2" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,0,0,1" Padding="20,10" Margin="0,0,0,12">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Search Input -->
-                <Border Grid.Column="0" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Width="260" Height="34">
-                    <Grid>
-                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0"
-                                 Padding="10,7" VerticalAlignment="Center" FontSize="12"/>
-                    </Grid>
-                </Border>
-
-                <!-- Filter Pills -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <Button Content="{DynamicResource Str_SelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
-                    <Button Content="{DynamicResource Str_DeselectAll}" Command="{Binding DeselectAllCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0"/>
-                    <Button Content="{DynamicResource Str_FilterAll}" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
+                <!-- Search Input & Group Selector -->
+                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                    <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Width="200" Height="34">
+                        <Grid>
+                            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0"
+                                     Padding="10,7" VerticalAlignment="Center" FontSize="12"/>
+                        </Grid>
+                    </Border>
+                    <ComboBox ItemsSource="{Binding AvailableGroups}" SelectedItem="{Binding SelectedGroupFilter}"
+                              Width="120" Height="34" Margin="8,0,0,0" VerticalContentAlignment="Center" Background="{StaticResource BgCard}" Foreground="{StaticResource TextPrimary}"/>
                 </StackPanel>
 
-                <!-- Batch Actions -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <!-- Filter Pills -->
+                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Button Content="{DynamicResource Str_SelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
+                    <Button Content="{DynamicResource Str_DeselectAll}" Command="{Binding DeselectAllCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
+                    <Button Content="🔄 Balikkan" Command="{Binding InvertSelectionCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0" ToolTip="Balikkan status pilihan semua PC"/>
+                    <Button Content="📋 Multi-Lab..." Command="{Binding OpenMultiLabSelectionCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" ToolTip="Pilih beberapa ruangan lab sekaligus"/>
+
+                    <!-- Dynamic Target Selection Indicator -->
+                    <Border Background="#1E3A8A" BorderBrush="#3B82F6" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TargetSummary}" Foreground="#93C5FD" FontWeight="Bold" FontSize="11" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <Button Content="{DynamicResource Str_FilterAll}" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
+
+                    <!-- Toggle View Mode: Grid View vs Denah Meja -->
+                    <Button Command="{Binding ToggleViewModeCommand}" Margin="12,0,6,0" Padding="10,6">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                <Setter Property="Content" Value="🗺️ Denah Meja"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFloorPlanViewActive}" Value="True">
+                                        <Setter Property="Content" Value="🪟 Grid View"/>
+                                        <Setter Property="Background" Value="#3B82F6"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Auto-Arrange Desks Button (Visible when in Floor Plan mode) -->
+                    <Button Content="📐 Susun Meja Otomatis" Command="{Binding AutoArrangeFloorPlanCommand}" Margin="0,0,6,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFloorPlanViewActive}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+
+                <!-- Top Right Batch Actions -->
+                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
+                    <!-- Hero Mass Action Button -->
+                    <Button Content="{Binding MassActionButtonText}" Command="{Binding OpenMassActionCommand}" Style="{StaticResource PrimaryButton}" Background="#2563EB" FontWeight="Bold" Padding="14,6" Margin="0,0,8,0" ToolTip="Buka Pusat Aktivitas Masal (Power, Black Screen, Skrip, Keyboard, Peluncur)"/>
+
+                    <Button Content="{DynamicResource Str_ExportInstallerToolbar}" Command="{Binding ExportInstallerCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,6,0"/>
+                    <Button Content="🗑️ Ekspor Uninstaller" Command="{Binding ExportUninstallerCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0" ToolTip="Ekspor file uninstall_agent_lab.bat untuk menghapus agent secara manual"/>
+                    <ComboBox ItemsSource="{Binding AvailableStreamQualities}" SelectedItem="{Binding SelectedStreamQuality}"
+                              Width="145" Height="32" Margin="0,0,6,0" VerticalContentAlignment="Center"
+                              Background="{StaticResource BgCard}" Foreground="{StaticResource TextPrimary}"
+                              ToolTip="Kualitas Streaming Guru (Eco 720p / Balanced 900p / High 1080p)"/>
                     <Button Padding="10,6" Margin="0,0,6,0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
@@ -91,112 +401,381 @@
                         </Button.Style>
                     </Button>
                     <Button Content="{DynamicResource Str_BtnWake}" Command="{Binding WakeSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
-                    <Button Content="{DynamicResource Str_BtnLock}" Command="{Binding LockSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
                     <Button Content="{DynamicResource Str_BtnRestart}" Command="{Binding RestartSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"/>
                     <Button Content="{DynamicResource Str_BtnShutdown}" Command="{Binding ShutdownSelectedCommand}" Style="{StaticResource DangerButton}"/>
                 </StackPanel>
+
+                <!-- Action Toolbar Row 2 -->
+                <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="🔍 Cek Program &amp; Koneksi" Command="{Binding CheckAgentConnectionCommand}" Style="{StaticResource PrimaryButton}" Background="#0D9488" Margin="0,0,6,4" ToolTip="Verifikasi PC agent mana saja yang terpasang &amp; terhubung dengan dialog status autoclose"/>
+                    <Button Content="📢 Kirim Notifikasi" Command="{Binding SendNotificationCommand}" Style="{StaticResource PrimaryButton}" Background="#4F46E5" Margin="0,0,10,4" ToolTip="Kirim pesan/pengumuman ke PC siswa dengan durasi auto-close dan pilihan tipe"/>
+
+                    <Button Content="{DynamicResource Str_BtnLockAttention}" Command="{Binding LockAttentionSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnUnlockAttention}" Command="{Binding UnlockAttentionSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4"/>
+
+                    <Button Content="{DynamicResource Str_BtnMuteAll}" Command="{Binding MuteAllCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnUnmuteAll}" Command="{Binding UnmuteAllCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4"/>
+
+                    <Button Content="{DynamicResource Str_BtnExamMode}" Command="{Binding EnableExamModeCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnDisableExamMode}" Command="{Binding DisableExamModeCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4"/>
+
+                    <Button Content="{DynamicResource Str_BtnBlockUsb}" Command="{Binding BlockUsbSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnUnblockUsb}" Command="{Binding UnblockUsbSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4"/>
+
+                    <Button Content="{DynamicResource Str_BtnBlockNet}" Command="{Binding BlockInternetSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnUnblockNet}" Command="{Binding UnblockInternetSelectedCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4"/>
+
+                    <Button Content="{DynamicResource Str_BtnLaunchApp}" Command="{Binding LaunchAppOrUrlCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnDistributeFile}" Command="{Binding DistributeFileCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="{DynamicResource Str_BtnCollectFiles}" Command="{Binding CollectFilesCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+
+                    <Button Content="{DynamicResource Str_BtnAssignGroup}" Command="{Binding AssignGroupCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+                    <Button Content="📍 Atur Ruang" Command="{Binding AssignRoomCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4" ToolTip="Pindahkan PC terpilih ke kategori ruang lab lain"/>
+                    <Button Content="{DynamicResource Str_BtnExportTelemetry}" Command="{Binding ExportTelemetryCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4"/>
+
+                    <!-- Feature 12: Real-time Application Blacklist & Auto-Kill Guard -->
+                    <Button Command="{Binding ToggleAppGuardCommand}" Margin="0,0,6,4" Padding="10,4">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                <Setter Property="Content" Value="🛡️ App Guard"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAppGuardActive}" Value="True">
+                                        <Setter Property="Content" Value="🛡️ App Guard: AKTIF"/>
+                                        <Setter Property="Background" Value="#B91C1C"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Feature 13: Push Clipboard / Broadcast Text -->
+                    <Button Content="📋 Kirim Clipboard" Command="{Binding BroadcastClipboardCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4"/>
+
+                    <!-- Feature 15: 1-Click Workspace & Storage Cleaner -->
+                    <Button Content="🧹 Bersihkan Workspace" Command="{Binding CleanWorkspaceCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4" ToolTip="Bersihkan file unduhan, cache temp, Recycle Bin, dan dokumen desktop siswa (shortcut aplikasi .lnk tetap aman)"/>
+
+                    <!-- Feature 17: Selective Web Filter -->
+                    <Button Content="🚫 Blok Sosmed &amp; Game" Command="{Binding SetWebFilterCommand}" CommandParameter="Blacklist" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4" ToolTip="Blokir TikTok, Roblox, Steam, YouTube dsb via DNS sinkhole hosts"/>
+                    <Button Content="✅ Whitelist Edukasi" Command="{Binding SetWebFilterCommand}" CommandParameter="Whitelist" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4" ToolTip="Mode Ujian / Whitelist domain sekolah"/>
+                    <Button Content="🔓 Buka Web Filter" Command="{Binding ClearWebFilterCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,4" ToolTip="Buka kembali seluruh filter website"/>
+
+                    <!-- Feature 18: Export Hardware Inventory CSV -->
+                    <Button Content="🖥️ Ekspor Hardware" Command="{Binding ExportHardwareInventoryCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,6,4" ToolTip="Ekspor spesifikasi teknis lengkap hardware (CPU, GPU, Disk, Serial MB) ke CSV"/>
+
+                    <!-- Feature 19: Batch Delete & Uninstall -->
+                    <Button Content="🗑️ Hapus Terpilih" Command="{Binding BatchDeleteComputersCommand}" Style="{StaticResource DangerButton}" Margin="0,0,10,4" ToolTip="Hapus seluruh PC yang dipilih dan uninstall service agent-nya"/>
+                </WrapPanel>
             </Grid>
         </Border>
 
-        <!-- Computers Tile Grid -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,0">
-            <ItemsControl ItemsSource="{Binding FilteredComputers}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" ItemWidth="230" ItemHeight="260"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Margin="6" Style="{StaticResource ModernCard}" Padding="10">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="110"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+        <!-- Main Content Area: Grid View & Floor Plan View -->
+        <Grid Grid.Row="3">
+            <!-- Mode 1: Traditional Responsive Grid View with Visual Room Grouping -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,0">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsFloorPlanViewActive}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
+                <ItemsControl ItemsSource="{Binding FilteredComputers}" ItemTemplate="{StaticResource ComputerCardTemplate}">
+                    <ItemsControl.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Border Background="#131B2E" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Margin="6,12,6,6" Padding="12,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="📍 " FontSize="13" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                                <Border Background="#1E3A8A" CornerRadius="10" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding ItemCount, StringFormat='{}{0} PC'}" FontSize="10" FontWeight="SemiBold" Foreground="#93C5FD"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="{Binding Name, StringFormat='☑ Pilih {0}'}"
+                                                        Command="{Binding DataContext.SelectRoomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding Name}"
+                                                        Style="{StaticResource SecondaryButton}"
+                                                        Padding="8,3" FontSize="11" Margin="0,0,6,0"
+                                                        ToolTip="{Binding Name, StringFormat='Pilih semua PC di {0}'}"/>
+                                                <Button Content="{Binding Name, StringFormat='☐ Batal {0}'}"
+                                                        Command="{Binding DataContext.DeselectRoomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding Name}"
+                                                        Style="{StaticResource SecondaryButton}"
+                                                        Padding="8,3" FontSize="11"
+                                                        ToolTip="{Binding Name, StringFormat='Batalkan pilihan PC di {0}'}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                            <GroupStyle.Panel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" ItemWidth="230" ItemHeight="285"/>
+                                </ItemsPanelTemplate>
+                            </GroupStyle.Panel>
+                        </GroupStyle>
+                    </ItemsControl.GroupStyle>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
 
-                                <!-- Header: Checkbox + Hostname + Status Dot -->
-                                <Grid Grid.Row="0" Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Hostname}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                    <Ellipse Grid.Column="2" Width="10" Height="10" Fill="{Binding StatusBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                </Grid>
-
-                                <!-- Thumbnail Screen Preview -->
-                                <Border Grid.Row="1" Background="#0F172A" CornerRadius="4" ClipToBounds="True" Margin="0,0,0,8">
-                                    <Grid>
-                                        <Image Source="{Binding ThumbnailSource}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                        <TextBlock Text="No Preview" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding ThumbnailSource}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Grid>
-                                </Border>
-
-                                <!-- IP & MAC Details -->
-                                <StackPanel Grid.Row="2" Margin="0,0,0,6">
-                                    <TextBlock Text="{Binding IpAddress}" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
-                                    <TextBlock Text="{Binding MacAddress}" FontSize="10" Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-
-                                <!-- CPU / RAM Mini Bars -->
-                                <Grid Grid.Row="3" Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                        <TextBlock Text="{Binding CpuFormatted}" FontSize="10" Foreground="{StaticResource TextSecondary}"/>
-                                        <ProgressBar Value="{Binding CpuUsage}" Maximum="100" Height="4" Background="#334155" Foreground="{StaticResource AccentBlue}" BorderThickness="0"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Margin="4,0,0,0">
-                                        <TextBlock Text="{Binding RamFormatted}" FontSize="10" Foreground="{StaticResource TextSecondary}" TextTrimming="CharacterEllipsis"/>
-                                        <ProgressBar Value="{Binding RamPercent}" Maximum="100" Height="4" Background="#334155" Foreground="{StaticResource AccentGreen}" BorderThickness="0"/>
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- Quick Actions per PC -->
-                                <Grid Grid.Row="4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Button Grid.Column="0" Content="Remote"
-                                            Command="{Binding DataContext.OpenRemoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource PrimaryButton}" Padding="4,4" Margin="0,0,3,0" FontSize="11"/>
-                                    <Button Grid.Column="1" Content="Script"
-                                            Command="{Binding DataContext.OpenScriptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource SecondaryButton}" Padding="4,4" Margin="3,0,0,0" FontSize="11"/>
-                                </Grid>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+            <!-- Mode 2: Interactive Seating Floor Plan View -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="16,10">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsFloorPlanViewActive}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
+                <Border Background="#090D16" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8">
+                    <ItemsControl ItemsSource="{Binding FilteredComputers}" ItemTemplate="{StaticResource ComputerCardTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Width="3200" Height="2200" Background="Transparent"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding PositionX, Mode=TwoWay}"/>
+                                <Setter Property="Canvas.Top" Value="{Binding PositionY, Mode=TwoWay}"/>
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
+                </Border>
+            </ScrollViewer>
+        </Grid>
 
         <!-- Bottom Status Bar -->
-        <Border Grid.Row="3" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,1,0,0" Padding="20,6">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+        <Border Grid.Row="4" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,1,0,0" Padding="20,6">
+            <Grid>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TargetSummary}" HorizontalAlignment="Right" Foreground="#38BDF8" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Feature: Multi-Lab Selection Dialog Modal Overlay -->
+        <Border Grid.RowSpan="5" Background="#80000000" Visibility="{Binding IsMultiLabDialogVisible, Converter={StaticResource BoolToVis}}" Panel.ZIndex="110">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="450" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="200"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="📋 Pilih Multi-Lab Serentak" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" DockPanel.Dock="Left"/>
+                        <Button Content="✕" Command="{Binding CloseMultiLabSelectionCommand}" Style="{StaticResource SecondaryButton}" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="28" Height="28" Padding="0"/>
+                    </DockPanel>
+
+                    <TextBlock Grid.Row="1" Text="Centang laboratorium yang ingin dipilih secara bersamaan:" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,12"/>
+
+                    <Border Grid.Row="2" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,16">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding MultiLabSelectionList}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsChecked}" Margin="0,6,0,6">
+                                            <TextBlock Text="{Binding DisplayText}" Foreground="{StaticResource TextPrimary}" FontSize="13" FontWeight="Medium"/>
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Batal" Command="{Binding CloseMultiLabSelectionCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Padding="14,6"/>
+                        <Button Content="Terapkan Seleksi" Command="{Binding ApplyMultiLabSelectionCommand}" Style="{StaticResource PrimaryButton}" Padding="16,6"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Border>
+
+        <!-- Feature 18: Hardware Diagnostics Dialog Modal Overlay -->
+        <Border Grid.RowSpan="5" Background="#80000000" Visibility="{Binding IsHardwareDialogVisible, Converter={StaticResource BoolToVis}}" Panel.ZIndex="100">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="520" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock Text="🔍 Rincian &amp; Diagnostik Hardware PC" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" DockPanel.Dock="Left"/>
+                        <Button Content="✕" Command="{Binding CloseHardwareDialogCommand}" Style="{StaticResource SecondaryButton}" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="28" Height="28" Padding="0"/>
+                    </DockPanel>
+
+                    <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Nama Hostname / Alias:" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.EffectiveName}" HorizontalAlignment="Right" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="12"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Ruang / Grup:" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.RoomName, StringFormat='{}{0} / '}" HorizontalAlignment="Right" Foreground="#38BDF8" FontWeight="SemiBold" FontSize="12">
+                                <Run Text="{Binding SelectedComputerHardware.GroupName, Mode=OneWay}"/>
+                            </TextBlock>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="IP &amp; MAC Address:" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.IpAddress, StringFormat='{}{0} | '}" HorizontalAlignment="Right" Foreground="{StaticResource TextPrimary}" FontSize="12">
+                                <Run Text="{Binding SelectedComputerHardware.MacAddress, Mode=OneWay}"/>
+                            </TextBlock>
+                        </Grid>
+                        <Separator Background="{StaticResource BorderBrushColor}" Margin="0,4,0,8"/>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Processor (CPU):" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.CpuModel}" HorizontalAlignment="Right" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" FontSize="12" MaxWidth="320" TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Kartu Grafis (GPU):" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.GpuModel}" HorizontalAlignment="Right" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" FontSize="12" MaxWidth="320" TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Kapasitas Penyimpanan Disk:" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.DiskStorageFormatted}" HorizontalAlignment="Right" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" FontSize="12"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Nomor Seri Motherboard:" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.MotherboardSerial}" HorizontalAlignment="Right" Foreground="{StaticResource AccentBlue}" FontWeight="Bold" FontSize="12"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Sistem Operasi:" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            <TextBlock Text="{Binding SelectedComputerHardware.OsVersion}" HorizontalAlignment="Right" Foreground="{StaticResource TextMuted}" FontSize="11" MaxWidth="320" TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <Button Grid.Row="2" Content="Tutup" Command="{Binding CloseHardwareDialogCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Width="100"/>
+                </Grid>
+            </Border>
+        </Border>
+
+        <!-- File Distribution Real-Time Monitoring Modal Overlay -->
+        <Border Grid.RowSpan="5" Background="#80000000" Visibility="{Binding IsFileTransferModalVisible, Converter={StaticResource BoolToVis}}" Panel.ZIndex="110">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="680" MaxHeight="600" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Modal Header -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,14">
+                        <TextBlock Text="📦 Pemantauan Distribusi Berkas Real-Time" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" DockPanel.Dock="Left"/>
+                        <Button Content="✕" Command="{Binding CloseFileTransferModalCommand}" Style="{StaticResource SecondaryButton}" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="28" Height="28" Padding="0"/>
+                    </DockPanel>
+
+                    <!-- Summary & Progress Info -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,14">
+                        <TextBlock Text="{Binding TransferProgressVM.ItemSummary}" Foreground="#38BDF8" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                        
+                        <!-- Cumulative Progress Bar -->
+                        <ProgressBar Value="{Binding TransferProgressVM.OverallProgress}" Maximum="100" Height="14" Foreground="{StaticResource AccentBlue}" Background="#1E293B" BorderThickness="0" Margin="0,0,0,6"/>
+                        
+                        <Grid>
+                            <TextBlock Text="{Binding TransferProgressVM.OverallProgressText}" Foreground="{StaticResource TextSecondary}" FontSize="12" HorizontalAlignment="Left"/>
+                            <TextBlock Text="{Binding TransferProgressVM.SpeedFormatted, StringFormat='Kecepatan: {0}'}" Foreground="#22C55E" FontWeight="Bold" FontSize="12" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Target PC List -->
+                    <Border Grid.Row="2" Background="#090D16" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" MaxHeight="280">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding TransferProgressVM.Targets}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="0,0,0,1" Padding="12,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="100"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0" Text="{Binding Hostname}" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding IpAddress}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center"/>
+                                                <Border Grid.Column="2" Background="{Binding StateBrush}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding StateText}" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="3" Text="{Binding StatusMessage}" Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- Footer Action Buttons -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <!-- Retry Failed Only Button -->
+                        <Button Content="🔄 Kirim Ulang ke PC yang Gagal"
+                                Command="{Binding TransferProgressVM.RetryFailedCommand}"
+                                Padding="12,6"
+                                Margin="0,0,10,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TransferProgressVM.CanRetryFailed}" Value="False">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                            <Setter Property="Opacity" Value="0.5"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <!-- Cancel Button -->
+                        <Button Content="Batalkan"
+                                Command="{Binding TransferProgressVM.CancelCommand}"
+                                Padding="12,6"
+                                Margin="0,0,10,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource DangerButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TransferProgressVM.CanCancel}" Value="False">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                            <Setter Property="Opacity" Value="0.5"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <!-- Close Button -->
+                        <Button Content="Tutup"
+                                Command="{Binding CloseFileTransferModalCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                Width="80"
+                                Padding="12,6"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Border>
     </Grid>
 </UserControl>

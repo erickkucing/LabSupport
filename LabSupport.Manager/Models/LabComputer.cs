@@ -7,16 +7,101 @@ using System.Windows.Media.Imaging;
 using LabSupport.Shared.Models;
 
 namespace LabSupport.Manager.Models;
-
 public class LabComputer : ComputerInfo, INotifyPropertyChanged
 {
-    private bool _isSelected;
     private BitmapSource? _thumbnailSource;
+    private DateTime _lastDbSaved = DateTime.MinValue;
+    private bool _isDuplicateHostname;
 
-    public bool IsSelected
+    public DateTime LastDbSaved
     {
-        get => _isSelected;
-        set => SetField(ref _isSelected, value);
+        get => _lastDbSaved;
+        set => SetField(ref _lastDbSaved, value);
+    }
+
+    public bool IsDuplicateHostname
+    {
+        get => _isDuplicateHostname;
+        set => SetField(ref _isDuplicateHostname, value);
+    }
+
+    public new bool IsSelected
+    {
+        get => base.IsSelected;
+        set
+        {
+            if (base.IsSelected != value)
+            {
+                base.IsSelected = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public new string GroupName
+    {
+        get => base.GroupName;
+        set
+        {
+            if (base.GroupName != value)
+            {
+                base.GroupName = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public new string RoomName
+    {
+        get => base.RoomName;
+        set
+        {
+            if (base.RoomName != value)
+            {
+                base.RoomName = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public new string? DisplayName
+    {
+        get => base.DisplayName;
+        set
+        {
+            if (base.DisplayName != value)
+            {
+                base.DisplayName = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EffectiveName));
+            }
+        }
+    }
+
+    public new double PositionX
+    {
+        get => base.PositionX;
+        set
+        {
+            if (Math.Abs(base.PositionX - value) > 0.001)
+            {
+                base.PositionX = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public new double PositionY
+    {
+        get => base.PositionY;
+        set
+        {
+            if (Math.Abs(base.PositionY - value) > 0.001)
+            {
+                base.PositionY = value;
+                OnPropertyChanged();
+            }
+        }
     }
 
     public BitmapSource? ThumbnailSource
@@ -34,6 +119,33 @@ public class LabComputer : ComputerInfo, INotifyPropertyChanged
         UpdateThumbnailSource();
     }
 
+    public void SetThumbnailSource(BitmapSource? source)
+    {
+        ThumbnailSource = source;
+    }
+
+    public static BitmapSource? CreateFrozenBitmap(byte[]? bytes)
+    {
+        if (bytes == null || bytes.Length == 0) return null;
+        try
+        {
+            var image = new BitmapImage();
+            using (var ms = new MemoryStream(bytes))
+            {
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = ms;
+                image.EndInit();
+            }
+            image.Freeze();
+            return image;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public void NotifyMetricsChanged()
     {
         OnPropertyChanged(nameof(Hostname));
@@ -48,8 +160,28 @@ public class LabComputer : ComputerInfo, INotifyPropertyChanged
         OnPropertyChanged(nameof(RamFormatted));
         OnPropertyChanged(nameof(DiskFreeGb));
         OnPropertyChanged(nameof(DiskFormatted));
+        OnPropertyChanged(nameof(NetworkDownloadKbps));
+        OnPropertyChanged(nameof(NetworkUploadKbps));
+        OnPropertyChanged(nameof(NetworkFormatted));
+        OnPropertyChanged(nameof(IsBandwidthHog));
+        OnPropertyChanged(nameof(CpuModel));
+        OnPropertyChanged(nameof(GpuModel));
+        OnPropertyChanged(nameof(DiskTotalGb));
+        OnPropertyChanged(nameof(MotherboardSerial));
+        OnPropertyChanged(nameof(IsLowDiskSpace));
+        OnPropertyChanged(nameof(IsHighRamUsage));
+        OnPropertyChanged(nameof(DiskStorageFormatted));
+        OnPropertyChanged(nameof(IdleSeconds));
+        OnPropertyChanged(nameof(IdleFormatted));
+        OnPropertyChanged(nameof(IsIdle));
         OnPropertyChanged(nameof(LastSeen));
         OnPropertyChanged(nameof(LastSeenFormatted));
+        OnPropertyChanged(nameof(GroupName));
+        OnPropertyChanged(nameof(RoomName));
+        OnPropertyChanged(nameof(DisplayName));
+        OnPropertyChanged(nameof(EffectiveName));
+        OnPropertyChanged(nameof(PositionX));
+        OnPropertyChanged(nameof(PositionY));
         OnPropertyChanged(nameof(IsOnline));
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(StatusBrush));

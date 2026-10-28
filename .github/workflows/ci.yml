@@ -1,0 +1,68 @@
+name: CI — Build & Test
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test-linux:
+    name: Build & Test (.NET 8 Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore LabSupport.sln
+
+      - name: Build Solution
+        run: dotnet build LabSupport.sln -c Release --no-restore
+
+      - name: Run xUnit Tests
+        run: |
+          dotnet test LabSupport.Tests/LabSupport.Tests.csproj \
+            -c Release \
+            --no-restore \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory TestResults
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-linux
+          path: TestResults/
+          retention-days: 7
+
+  build-windows:
+    name: Windows WPF & Agent Build Check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore LabSupport.sln
+
+      - name: Build Solution (Windows Native)
+        run: dotnet build LabSupport.sln -c Release --no-restore

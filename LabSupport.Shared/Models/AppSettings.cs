@@ -3,6 +3,7 @@ namespace LabSupport.Shared.Models;
 public class AppSettings
 {
     public string Language { get; set; } = "id-ID";
+    public string ManagerId { get; set; } = string.Empty;
     public int HttpPort { get; set; } = 8080;
     public int AgentPort { get; set; } = 5902;
     public int HeartbeatIntervalSeconds { get; set; } = 5;

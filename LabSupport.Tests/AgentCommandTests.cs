@@ -181,6 +181,35 @@ public class AgentCommandTests : IDisposable
         Assert.True(stopResp.Success);
     }
 
+    [Fact]
+    public async Task ManagerIdValidation_ShouldAcceptMatchingAndRejectMismatch()
+    {
+        int authPort = 15903;
+        using var secureListener = new CommandListener(authPort, expectedManagerId: "LAB-ROOM-101");
+        secureListener.Start();
+
+        var authClient = new AgentCommandService(authPort, managerId: "LAB-ROOM-101");
+
+        // 1. Matching ManagerId -> Success
+        var matchingCmd = new CommandMessage { Type = CommandType.Ping };
+        var okResp = await authClient.SendCommandAsync("127.0.0.1", matchingCmd, authPort, timeoutMs: 3000);
+        Assert.True(okResp.Success);
+        Assert.Equal("Pong", okResp.Output);
+
+        // 2. Mismatched ManagerId -> Unauthorized Failure
+        var mismatchCmd = new CommandMessage { Type = CommandType.Ping, ManagerId = "LAB-OTHER-999" };
+        var failResp = await authClient.SendCommandAsync("127.0.0.1", mismatchCmd, authPort, timeoutMs: 3000);
+        Assert.False(failResp.Success);
+        Assert.Contains("Unauthorized", failResp.Error);
+
+        // 3. Empty ManagerId -> Unauthorized Failure
+        var emptyCmd = new CommandMessage { Type = CommandType.Ping, ManagerId = "" };
+        var unauthClient = new AgentCommandService(authPort, managerId: "");
+        var unauthResp = await unauthClient.SendCommandAsync("127.0.0.1", emptyCmd, authPort, timeoutMs: 3000);
+        Assert.False(unauthResp.Success);
+        Assert.Contains("Unauthorized", unauthResp.Error);
+    }
+
     public void Dispose()
     {
         _listener.Dispose();

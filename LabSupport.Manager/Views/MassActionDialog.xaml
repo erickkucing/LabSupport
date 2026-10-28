@@ -1,0 +1,416 @@
+<Window x:Class="LabSupport.Manager.Views.MassActionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:LabSupport.Manager.ViewModels"
+        mc:Ignorable="d"
+        Title="Pusat Aktivitas Masal (Mass Action Center) — LabSupport"
+        Width="880" Height="680"
+        MinWidth="780" MinHeight="580"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgDark}"
+        Foreground="{StaticResource TextPrimary}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <!-- Header: Title & Target Summary Banner -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Content: Tabs -->
+            <RowDefinition Height="*"/>
+            <!-- Execution Progress & Per-PC Results -->
+            <RowDefinition Height="Auto"/>
+            <!-- Footer: Close & Retry Buttons -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🚀 Pusat Aktivitas Masal (Mass Action Center)" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="{Binding TargetSummary}" FontSize="13" FontWeight="SemiBold" Foreground="#38BDF8" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <Border Grid.Column="1" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Padding="12,6" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Online: " Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                        <TextBlock Text="{Binding OnlineTargetCount}" Foreground="{StaticResource AccentGreen}" FontWeight="Bold" FontSize="12"/>
+                        <TextBlock Text=" / Total: " Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,0,0"/>
+                        <TextBlock Text="{Binding TotalTargetCount}" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="12"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Tabs Container -->
+        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}" Background="Transparent" BorderThickness="0" Margin="0,0,0,12">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Padding" Value="14,8"/>
+                    <Setter Property="Margin" Value="0,0,4,0"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="TabBorder" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1,1,1,0" CornerRadius="6,6,0,0" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="TabBorder" Property="Background" Value="#2563EB"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- TAB 1: POWER (DAYA) -->
+            <TabItem Header="⚡ Daya (Power)">
+                <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="0,6,6,6" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Kontrol Daya Masal" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="Jalankan perintah manajemen daya ke seluruh komputer terpilih secara serentak." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16"/>
+                        </StackPanel>
+
+                        <UniformGrid Grid.Row="1" Columns="2" Rows="2" Margin="0,10,0,0">
+                            <!-- Wake On LAN -->
+                            <Border Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="6">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="📡 Wake-on-LAN (WoL)" FontWeight="Bold" FontSize="14" Foreground="#38BDF8"/>
+                                    <TextBlock Text="Kirim Magic Packet burst ke seluruh PC yang mati untuk menyalakan komputer secara serentak." FontSize="11" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                                    <Button Content="⚡ Nyalakan Semua (WoL)" Command="{Binding WakeAllCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Sleep / Standby -->
+                            <Border Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="6">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="💤 Standby / Sleep" FontWeight="Bold" FontSize="14" Foreground="#F59E0B"/>
+                                    <TextBlock Text="Tidurkan sistem Windows (Standby via powrprof.dll). Menghemat listrik namun siap dibangunkan kembali seketika." FontSize="11" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                                    <Button Content="💤 Tidurkan Komputer (Sleep)" Command="{Binding SleepAllCommand}" Style="{StaticResource SecondaryButton}" Background="#D97706" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Restart -->
+                            <Border Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="6">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🔄 Restart Komputer" FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentBlue}"/>
+                                    <TextBlock Text="Restart paksa seluruh PC siswa yang sedang aktif untuk me-refresh sistem operasi." FontSize="11" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                                    <Button Content="🔄 Restart Terpilih" Command="{Binding RestartAllCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Shutdown -->
+                            <Border Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="6">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🛑 Shutdown (Matikan Total)" FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentRed}"/>
+                                    <TextBlock Text="Matikan seluruh PC secara aman setelah sesi praktikum lab selesai." FontSize="11" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                                    <Button Content="🛑 Matikan Semua (Shutdown)" Command="{Binding ShutdownAllCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- TAB 2: BLACK SCREEN (LAYAR HITAM TOTAL) -->
+            <TabItem Header="🖤 Layar Hitam (Black Screen)">
+                <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="0,6,6,6" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Layar Hitam Total (Pitch Black Lock) &amp; Perhatian Guru" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="Kunci layar siswa menjadi hitam pekat total tanpa kursor dan tanpa teks, atau kunci dengan pesan perhatian kustom." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Pitch Black Screen Box -->
+                            <Border Grid.Column="0" Background="#0A0D14" BorderBrush="#334155" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,10,0">
+                                <StackPanel VerticalAlignment="Top">
+                                    <Border Background="#000000" BorderBrush="#475569" BorderThickness="1" CornerRadius="4" Height="70" Margin="0,0,0,14">
+                                        <TextBlock Text="LAYAR HITAM PEKAT (#000000)&#x0a;Kursor Disembunyikan • Seluruh Input Diblokir" Foreground="#64748B" FontSize="11" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="Mode Layar Hitam Total" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Cocok untuk mengalihkan perhatian siswa sepenuhnya saat guru menjelaskan materi atau saat ujian selesai." FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16" TextWrapping="Wrap"/>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="🖤 Aktifkan Layar Hitam" Command="{Binding EnableBlackScreenCommand}" Style="{StaticResource DangerButton}" Background="#000000" BorderBrush="#DC2626" BorderThickness="1" Foreground="#FCA5A5" Padding="14,8" Margin="0,0,8,0"/>
+                                        <Button Content="🔓 Pulihkan Layar Normal" Command="{Binding DisableBlackScreenCommand}" Style="{StaticResource PrimaryButton}" Padding="14,8"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Attention Lock with Message Box -->
+                            <Border Grid.Column="1" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="10,0,0,0">
+                                <StackPanel VerticalAlignment="Top">
+                                    <TextBlock Text="Kunci Perhatian Guru (Pesan Kustom)" FontSize="14" FontWeight="Bold" Foreground="#38BDF8"/>
+                                    <TextBlock Text="Kunci layar dan input dengan menampilkan teks peringatan besar di layar siswa." FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,12" TextWrapping="Wrap"/>
+
+                                    <TextBlock Text="Pesan Layar Siswa:" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding CustomAttentionMessage, UpdateSourceTrigger=PropertyChanged}" Background="#1E293B" Foreground="White" BorderBrush="{StaticResource BorderBrushColor}" Padding="10,7" FontSize="12" Margin="0,0,0,14"/>
+
+                                    <Button Content="🔒 Kunci Perhatian Guru" Command="{Binding LockAttentionCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- TAB 3: SKRIP MASAL -->
+            <TabItem Header="📜 Skrip Masal">
+                <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="0,6,6,6" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Eksekusi Skrip Pemeliharaan Masal" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="Jalankan skrip PowerShell atau Batch serentak ke semua PC terpilih." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,12"/>
+                        </StackPanel>
+
+                        <!-- Template Selector & Script Type -->
+                        <Grid Grid.Row="1" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Template Cepat: " Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center"/>
+                                <ComboBox ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}" DisplayMemberPath="Title" Width="260" Height="30" Margin="6,0,0,0" Background="#0F172A" Foreground="{StaticResource TextPrimary}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <RadioButton Content="PowerShell" IsChecked="{Binding IsPowerShell}" Foreground="{StaticResource TextPrimary}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                <RadioButton Content="Batch (.bat)" IsChecked="{Binding IsBatch}" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Script Editor Box -->
+                        <Border Grid.Row="2" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="6" Padding="4" Margin="0,0,0,12">
+                            <TextBox Text="{Binding ScriptContent, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Consolas" FontSize="12" Background="Transparent" Foreground="#E2E8F0" BorderThickness="0" VerticalScrollBarVisibility="Auto"/>
+                        </Border>
+
+                        <Button Grid.Row="3" Content="▶ Jalankan Skrip ke Seluruh Target" Command="{Binding ExecuteScriptCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Padding="16,8"/>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- TAB 4: AKSI KEYBOARD -->
+            <TabItem Header="⌨️ Aksi Keyboard">
+                <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="0,6,6,6" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Aksi &amp; Pintasan Keyboard Masal" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="Kirim pintasan keyboard serentak atau ketikkan teks langsung ke jendela aktif di PC siswa." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16"/>
+                        </StackPanel>
+
+                        <!-- Shortcut Presets -->
+                        <Border Grid.Row="1" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Pintasan Keyboard Populer (Kirim Serentak):" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button Content="🪟 Win+D (Show Desktop)" Command="{Binding SendWinDCommand}" Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,6"/>
+                                    <Button Content="✕ Alt+F4 (Tutup Aplikasi Aktif)" Command="{Binding SendAltF4Command}" Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,6"/>
+                                    <Button Content="🔒 Win+L (Lock Workstation)" Command="{Binding SendWinLCommand}" Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,6"/>
+                                    <Button Content="↵ Enter" Command="{Binding SendEnterCommand}" Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,6"/>
+                                    <Button Content="⎋ Esc" Command="{Binding SendEscCommand}" Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,6"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Text Broadcast Typing -->
+                        <Border Grid.Row="2" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Siaran Ketik Teks (Broadcast Typing):" FontSize="13" FontWeight="Bold" Foreground="#38BDF8"/>
+                                <TextBlock Text="Mengetik teks karakter per karakter ke jendela yang sedang aktif di PC siswa (misal terminal atau form ujian)." FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,10"/>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding BroadcastText, UpdateSourceTrigger=PropertyChanged}" Background="#1E293B" Foreground="White" BorderBrush="{StaticResource BorderBrushColor}" Padding="10,7" FontSize="12"/>
+                                    <Button Grid.Column="1" Content="⌨️ Ketikkan Teks" Command="{Binding SendBroadcastTextCommand}" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Padding="14,7"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- TAB 5: PELUNCUR MASAL -->
+            <TabItem Header="🌐 Peluncur Masal">
+                <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="0,6,6,6" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Peluncur Website &amp; Aplikasi Serentak" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="Buka alamat URL situs ujian atau jalankan aplikasi praktikum secara serentak di PC siswa." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16"/>
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Target URL Website atau Path Aplikasi:" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding LaunchTarget, UpdateSourceTrigger=PropertyChanged}" Background="#1E293B" Foreground="White" BorderBrush="{StaticResource BorderBrushColor}" Padding="10,7" FontSize="12" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Argumen Opsional (opsional):" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding LaunchArguments, UpdateSourceTrigger=PropertyChanged}" Background="#1E293B" Foreground="White" BorderBrush="{StaticResource BorderBrushColor}" Padding="10,7" FontSize="12" Margin="0,0,0,16"/>
+
+                                <Button Content="🚀 Buka di Semua PC Target" Command="{Binding ExecuteLaunchCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Padding="16,8"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- TAB 6: PEMELIHARAAN -->
+            <TabItem Header="🧹 Pemeliharaan">
+                <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="0,6,6,6" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Pemeliharaan &amp; Kebersihan Ruang Kerja" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="Bersihkan file sampah, cache unduhan, dan hentikan proses nakal pada PC terpilih." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Clean Workspace Box -->
+                            <Border Grid.Column="0" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,10,0">
+                                <StackPanel VerticalAlignment="Top">
+                                    <TextBlock Text="🧹 1-Click Bersihkan Workspace" FontSize="14" FontWeight="Bold" Foreground="#10B981"/>
+                                    <TextBlock Text="Menghapus file di folder Downloads, Temp, Recycle Bin, dan dokumen desktop siswa. Shortcut aplikasi (.lnk) tetap aman terlindungi." FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,16" TextWrapping="Wrap"/>
+                                    <Button Content="🧹 Bersihkan Workspace Sekarang" Command="{Binding CleanWorkspaceCommand}" Style="{StaticResource SecondaryButton}" Background="#065F46" Foreground="#A7F3D0" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Kill Process Box -->
+                            <Border Grid.Column="1" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="10,0,0,0">
+                                <StackPanel VerticalAlignment="Top">
+                                    <TextBlock Text="🛑 Force Kill Proses Nakal" FontSize="14" FontWeight="Bold" Foreground="#EF4444"/>
+                                    <TextBlock Text="Hentikan paksa proses berdasarkan nama program di semua PC siswa." FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,12" TextWrapping="Wrap"/>
+
+                                    <TextBlock Text="Nama Program / Proses (contoh: chrome, roblox, steam):" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding KillProcessName, UpdateSourceTrigger=PropertyChanged}" Background="#1E293B" Foreground="White" BorderBrush="{StaticResource BorderBrushColor}" Padding="10,7" FontSize="12" Margin="0,0,0,14"/>
+
+                                    <Button Content="🛑 Hentikan Proses Tersebut" Command="{Binding ForceKillProcessCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Padding="14,8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </TabItem>
+        </TabControl>
+
+        <!-- Execution Progress & Per-PC Results -->
+        <Border Grid.Row="2" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="90"/>
+                </Grid.RowDefinitions>
+
+                <!-- Progress Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <TextBlock Text="Hasil Eksekusi:" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="{Binding ExecutionSummary}" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#38BDF8"/>
+                </Grid>
+
+                <!-- Progress Bar -->
+                <ProgressBar Grid.Row="1" Value="{Binding ExecutionProgress}" Height="6" Background="#0F172A" Foreground="#3B82F6" BorderThickness="0" Margin="0,0,0,8"/>
+
+                <!-- Results List -->
+                <Border Grid.Row="2" Background="#0F172A" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Results}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#1E293B" BorderThickness="0,0,0,1" Padding="8,4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="110"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding Hostname}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding IpAddress}" FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="2" Background="{Binding StatusBrush}" CornerRadius="3" Padding="4,1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding StatusText}" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+                                            <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Footer -->
+        <Grid Grid.Row="3">
+            <Button Content="🔄 Kirim Ulang ke PC yang Gagal" Command="{Binding RetryFailedCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="14,8"/>
+            <Button Content="Tutup Dialog" Command="{Binding CloseCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Padding="18,8"/>
+        </Grid>
+    </Grid>
+</Window>

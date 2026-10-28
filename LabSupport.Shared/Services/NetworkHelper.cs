@@ -10,9 +10,62 @@ namespace LabSupport.Shared.Services;
 
 public static class NetworkHelper
 {
+    private static readonly string[] VirtualKeywords =
+    {
+        "vethernet",
+        "virtualbox",
+        "vmware",
+        "wsl",
+        "loopback",
+        "hyper-v",
+        "docker",
+        "wireguard",
+        "openvpn",
+        "tailscale",
+        "zerotier",
+        "virtual"
+    };
+
+    public static bool IsVirtualAdapter(string name, string description)
+    {
+        var n = name ?? string.Empty;
+        var d = description ?? string.Empty;
+
+        foreach (var k in VirtualKeywords)
+        {
+            if (n.Contains(k, StringComparison.OrdinalIgnoreCase) ||
+                d.Contains(k, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        if (n.StartsWith("veth", StringComparison.OrdinalIgnoreCase) ||
+            d.Contains("veth", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (n.Contains("tap", StringComparison.OrdinalIgnoreCase) ||
+            d.Contains("tap", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool IsVirtualAdapter(NetworkInterface ni)
+    {
+        return IsVirtualAdapter(ni.Name, ni.Description);
+    }
+
     public static List<string> GetLocalIPv4Addresses()
     {
-        var ips = new List<string>();
+        var physicalEthernet = new List<string>();
+        var wifi = new List<string>();
+        var otherNonVirtual = new List<string>();
+        var virtualOrFallback = new List<string>();
 
         try
         {
@@ -25,12 +78,33 @@ public static class NetworkHelper
                 if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback)
                     continue;
 
+                bool isVirtual = IsVirtualAdapter(ni);
+
                 var ipProps = ni.GetIPProperties();
                 foreach (var addr in ipProps.UnicastAddresses)
                 {
-                    if (addr.Address.AddressFamily == AddressFamily.InterNetwork)
+                    if (addr.Address.AddressFamily != AddressFamily.InterNetwork)
+                        continue;
+
+                    string ipStr = addr.Address.ToString();
+                    if (ipStr == "127.0.0.1")
+                        continue;
+
+                    if (isVirtual)
                     {
-                        ips.Add(addr.Address.ToString());
+                        virtualOrFallback.Add(ipStr);
+                    }
+                    else if (ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                    {
+                        physicalEthernet.Add(ipStr);
+                    }
+                    else if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                    {
+                        wifi.Add(ipStr);
+                    }
+                    else
+                    {
+                        otherNonVirtual.Add(ipStr);
                     }
                 }
             }
@@ -40,12 +114,38 @@ public static class NetworkHelper
             // Fallback
         }
 
-        if (ips.Count == 0)
+        static IEnumerable<string> PrioritizeNonApipa(IEnumerable<string> list) =>
+            list.OrderBy(ip => ip.StartsWith("169.254.") ? 1 : 0);
+
+        var result = new List<string>();
+        result.AddRange(PrioritizeNonApipa(physicalEthernet));
+        result.AddRange(PrioritizeNonApipa(wifi));
+        result.AddRange(PrioritizeNonApipa(otherNonVirtual));
+
+        if (result.Count == 0)
         {
-            ips.Add("127.0.0.1");
+            result.AddRange(PrioritizeNonApipa(virtualOrFallback));
         }
 
-        return ips.Distinct().ToList();
+        var distinct = result.Distinct().ToList();
+        if (distinct.Count == 0)
+        {
+            distinct.Add("127.0.0.1");
+        }
+
+        return distinct;
+    }
+
+    public static string GetPrimaryLanIPv4Address()
+    {
+        var ips = GetLocalIPv4Addresses();
+        var primary = ips.FirstOrDefault(ip => !ip.StartsWith("127.") && !ip.StartsWith("169.254."));
+        if (!string.IsNullOrEmpty(primary))
+        {
+            return primary;
+        }
+
+        return ips.FirstOrDefault() ?? "127.0.0.1";
     }
 
     public static string GetDefaultMacAddress()

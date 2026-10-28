@@ -14,10 +14,12 @@ namespace LabSupport.Shared.Services;
 public class AgentCommandService
 {
     private readonly int _defaultPort;
+    public string ManagerId { get; set; } = string.Empty;
 
-    public AgentCommandService(int defaultPort = 5902)
+    public AgentCommandService(int defaultPort = 5902, string managerId = "")
     {
         _defaultPort = defaultPort;
+        ManagerId = managerId;
     }
 
     public async Task<CommandResponse> SendCommandAsync(
@@ -27,6 +29,11 @@ public class AgentCommandService
         int timeoutMs = 15000,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(command.ManagerId) && !string.IsNullOrEmpty(ManagerId))
+        {
+            command.ManagerId = ManagerId;
+        }
+
         int targetPort = port > 0 ? port : _defaultPort;
         using var client = new TcpClient();
 

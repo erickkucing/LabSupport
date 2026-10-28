@@ -6,68 +6,309 @@
              xmlns:vm="clr-namespace:LabSupport.Manager.ViewModels"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance vm:GenerateAgentViewModel}"
-             d:DesignHeight="700" d:DesignWidth="1000">
-    <Grid Background="{StaticResource BgDark}" Margin="24">
+             d:DesignHeight="700" d:DesignWidth="1050">
+    <Grid Background="{StaticResource BgDark}" Margin="20">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="420"/>
+            <ColumnDefinition Width="480"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Left Form Card -->
-        <Border Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,16,0">
+        <!-- Left Column: 3 Action & Info Cards -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,16,0">
             <StackPanel>
-                <TextBlock Text="{DynamicResource Str_GenTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
-                <TextBlock Text="{DynamicResource Str_GenDescription}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                <!-- Page Header Title -->
+                <TextBlock Text="{DynamicResource Str_GenTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4"/>
+                <TextBlock Text="{DynamicResource Str_GenDescription}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
-                <!-- Manager IP -->
-                <TextBlock Text="{DynamicResource Str_ManagerIpLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
-                <ComboBox ItemsSource="{Binding AvailableIpAddresses}"
-                          SelectedItem="{Binding SelectedManagerIp, UpdateSourceTrigger=PropertyChanged}"
-                          IsEditable="True"
-                          Background="{StaticResource BgSidebar}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,14" Height="32"/>
+                <!-- Card 1: Network & Lab Identity Status -->
+                <Border Style="{StaticResource ModernCard}" Margin="0,0,0,14">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="{DynamicResource Str_CardNetworkIdentity}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                            <Border HorizontalAlignment="Right" Background="#064E3B" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="LAN Otomatis" Foreground="#34D399" FontSize="10" FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
 
-                <!-- Port -->
-                <TextBlock Text="{DynamicResource Str_ManagerPortLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
-                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32" Margin="0,0,0,14">
-                    <TextBox Text="{Binding ManagerPort, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,6" FontSize="12"/>
+                        <!-- Primary LAN IP -->
+                        <TextBlock Text="{DynamicResource Str_ManagerIpLabel}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="Medium" Margin="0,0,0,4"/>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableIpAddresses}"
+                                      SelectedItem="{Binding SelectedManagerIp, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEditable="True"
+                                      Background="{StaticResource BgSidebar}" Foreground="{StaticResource TextPrimary}" Height="32"/>
+                            <Button Grid.Column="1" Content="🔄" ToolTip="Refresh Adapter Jaringan"
+                                    Command="{Binding RefreshIpsCommand}"
+                                    Style="{StaticResource SecondaryButton}" Height="32" Width="36" Margin="6,0,0,0" Padding="0"/>
+                        </Grid>
+
+                        <!-- Unique Lab Code -->
+                        <TextBlock Text="{DynamicResource Str_ManagerIdLabel}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="Medium" Margin="0,0,0,4"/>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32">
+                                <TextBox Text="{Binding ManagerId, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="Transparent" Foreground="#38BDF8" FontWeight="Bold"
+                                         BorderThickness="0" Padding="8,6" FontSize="13" VerticalAlignment="Center"/>
+                            </Border>
+                            <Button Grid.Column="1" Content="{DynamicResource Str_BtnRegenerateCode}"
+                                    Command="{Binding RegenerateLabCodeCommand}"
+                                    Style="{StaticResource SecondaryButton}" Height="32" Margin="6,0,0,0" Padding="10,4" FontSize="11"/>
+                        </Grid>
+
+                        <!-- Advanced Settings Expander -->
+                        <Expander Header="Pengaturan Lanjutan (Port &amp; Service)" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,4,0,0">
+                            <StackPanel Margin="0,8,0,0">
+                                <TextBlock Text="{DynamicResource Str_ManagerPortLabel}" Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+                                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="30" Margin="0,0,0,8">
+                                    <TextBox Text="{Binding ManagerPort, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,5" FontSize="11"/>
+                                </Border>
+                                <TextBlock Text="{DynamicResource Str_ServiceNameLabel}" Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+                                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="30">
+                                    <TextBox Text="{Binding ServiceName, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,5" FontSize="11"/>
+                                </Border>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
                 </Border>
 
-                <!-- Service Name -->
-                <TextBlock Text="{DynamicResource Str_ServiceNameLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
-                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32" Margin="0,0,0,14">
-                    <TextBox Text="{Binding ServiceName, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,6" FontSize="12"/>
+                <!-- Card 2: Multi-Lab Batch Installer & Kategori Ruang (.bat) -->
+                <Border Style="{StaticResource ModernCard}" Margin="0,0,0,14" BorderBrush="#10B981" BorderThickness="1">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="🏢 Ekspor File .BAT Multi-Lab (Kategori Ruang)" FontSize="14" FontWeight="SemiBold" Foreground="#34D399" VerticalAlignment="Center"/>
+                            <Border HorizontalAlignment="Right" Background="#064E3B" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="Multi-Lab Ready" Foreground="#34D399" FontSize="10" FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+                        <TextBlock Text="Ekspor installer mandiri (.bat) untuk beberapa kelompok lab sekaligus (misal Lab 209A [30 PC], Lab 209B [20 PC]). File .bat otomatis menautkan PC ke kategori ruang terkait."
+                                   Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                        <!-- Daftar Ruang Lab Table -->
+                        <Border Background="#090D16" CornerRadius="6" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" Margin="0,0,0,10" Padding="8">
+                            <StackPanel>
+                                <Grid Margin="4,0,4,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="32"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Nama Ruang Lab (Klik untuk pilih preview)" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" Text="Target PC" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="2" Text="" Foreground="{StaticResource TextMuted}" FontSize="10"/>
+                                </Grid>
+
+                                <ListBox ItemsSource="{Binding MultiLabRooms}" SelectedItem="{Binding SelectedLabRoom, Mode=TwoWay}"
+                                         Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Margin" Value="0,2"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="Bd" Background="#131B2E" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Padding="8,5">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#1E293B"/>
+                                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="📍 " FontSize="11"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border Grid.Column="1" Background="#1E3A8A" CornerRadius="4" Padding="6,2" Margin="6,0,8,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Capacity, StringFormat='{}{0} PC'}" Foreground="#93C5FD" FontSize="10" FontWeight="SemiBold"/>
+                                                </Border>
+                                                <Button Grid.Column="2" Content="✕" ToolTip="Hapus Ruang"
+                                                        Command="{Binding DataContext.RemoveRoomCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent" Foreground="#EF4444" BorderThickness="0" Cursor="Hand" Padding="4,2" FontSize="11"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <!-- Form Tambah Ruang Baru -->
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="28" Margin="0,0,6,0">
+                                        <TextBox Text="{Binding NewRoomName, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="6,4" FontSize="11" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="1" Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="28" Margin="0,0,6,0">
+                                        <TextBox Text="{Binding NewRoomCapacity, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="6,4" FontSize="11" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Button Grid.Column="2" Content="+ Tambah" Command="{Binding AddRoomCommand}" Style="{StaticResource SecondaryButton}" Height="28" Padding="8,2" FontSize="11"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Action Buttons Grid -->
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Export All Labs Button -->
+                            <Button Grid.Column="0" Content="💾 Ekspor Semua .BAT"
+                                    Command="{Binding ExportAllLabBatsCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Background="#059669"
+                                    Height="40" FontSize="12" FontWeight="Bold" Cursor="Hand" Margin="0,0,4,0"/>
+
+                            <!-- Export Selected Room Button -->
+                            <Button Grid.Column="1" Content="💾 Ekspor Ruang Ini"
+                                    Command="{Binding ExportSelectedLabBatCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Background="#2563EB"
+                                    Height="40" FontSize="12" FontWeight="Bold" Cursor="Hand" Margin="4,0,0,0"/>
+                        </Grid>
+
+                        <!-- Status Feedback Box -->
+                        <Border Margin="0,8,0,0" Background="#064E3B" BorderBrush="#059669" BorderThickness="1" CornerRadius="6" Padding="10">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding StatusMessage}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="#D1FAE5" FontSize="11" TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
                 </Border>
 
-                <!-- Output Directory -->
-                <TextBlock Text="{DynamicResource Str_OutputDirLabel}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,4"/>
-                <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderBrushColor}" BorderThickness="1" CornerRadius="4" Height="32" Margin="0,0,0,20">
-                    <TextBox Text="{Binding OutputDirectory, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource TextPrimary}" BorderThickness="0" Padding="8,6" FontSize="12"/>
+                <!-- Card 3: 3-Step Practical Guide for Lab Technician -->
+                <Border Style="{StaticResource ModernCard}" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Str_CardPracticalGuide}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
+
+                        <!-- Step 1 -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="#1E3A8A" CornerRadius="14" Width="24" Height="24" VerticalAlignment="Top">
+                                <TextBlock Text="1" Foreground="#93C5FD" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Simpan ke Flashdisk (USB)" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="Klik tombol hijau di atas untuk menyimpan 'pasang_agent_lab.bat' langsung ke flashdisk USB Anda."
+                                           Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Step 2 -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="#1E3A8A" CornerRadius="14" Width="24" Height="24" VerticalAlignment="Top">
+                                <TextBlock Text="2" Foreground="#93C5FD" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Jalankan di PC Laboratorium" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="Tancapkan flashdisk ke PC Lab target, klik kanan file 'pasang_agent_lab.bat', lalu pilih 'Run as Administrator'."
+                                           Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Step 3 -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="#064E3B" CornerRadius="14" Width="24" Height="24" VerticalAlignment="Top">
+                                <TextBlock Text="3" Foreground="#34D399" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Selesai 100% Otomatis" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="Script akan mendownload agent secara headless via LAN, mendaftar service autostart, dan langsung muncul di Dashboard tanpa perlu membuka LabSupport.Agent.exe!"
+                                           Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
                 </Border>
 
-                <!-- Generate Button -->
-                <Button Content="{DynamicResource Str_BtnGenerate}" Command="{Binding GenerateCommand}" Style="{StaticResource PrimaryButton}" Height="38" Margin="0,0,0,16"/>
+                <!-- Card 4: BIOS/UEFI Checklist for Wake-on-LAN -->
+                <Border Style="{StaticResource ModernCard}" Margin="0,0,0,14" BorderBrush="#3B82F6" BorderThickness="1">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource Str_CardBiosGuideTitle}" FontSize="14" FontWeight="SemiBold" Foreground="#60A5FA" VerticalAlignment="Center"/>
+                            <Border HorizontalAlignment="Right" Background="#1E3A8A" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="{DynamicResource Str_CardBiosGuideBadge}" Foreground="#93C5FD" FontSize="10" FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+                        <TextBlock Text="{DynamicResource Str_CardBiosGuideDesc}"
+                                   Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                <!-- Status Feedback Box -->
-                <Border Background="#064E3B" BorderBrush="#059669" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,0">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding StatusMessage}" Value="">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding StatusMessage, Converter={x:Null}}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="#D1FAE5" FontSize="12" TextWrapping="Wrap"/>
+                        <!-- Checklist Item 1: ErP / EuP -->
+                        <Border Background="#0F172A" CornerRadius="6" Padding="8" Margin="0,0,0,6">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Str_BiosItem1Title}" FontWeight="Bold" FontSize="11" Foreground="#F59E0B"/>
+                                <TextBlock Text="{DynamicResource Str_BiosItem1Desc}"
+                                           Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Checklist Item 2: Wake on LAN / PCIe PME -->
+                        <Border Background="#0F172A" CornerRadius="6" Padding="8" Margin="0,0,0,6">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Str_BiosItem2Title}" FontWeight="Bold" FontSize="11" Foreground="#34D399"/>
+                                <TextBlock Text="{DynamicResource Str_BiosItem2Desc}"
+                                           Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Checklist Item 3: Indikator LED -->
+                        <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Str_BiosItem3Title}" FontWeight="Bold" FontSize="11" Foreground="#38BDF8"/>
+                                <TextBlock Text="{DynamicResource Str_BiosItem3Desc}"
+                                           Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Border>
             </StackPanel>
-        </Border>
+        </ScrollViewer>
 
-        <!-- Right Preview Tab Card -->
+        <!-- Right Column: Real-time Script Preview -->
         <Border Grid.Column="1" Style="{StaticResource ModernCard}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -75,26 +316,28 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Preview Script yang Dihasilkan" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="Preview Script yang Dihasilkan (Live Preview)" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                </Grid>
 
                 <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
-                    <!-- PS1 Tab -->
-                    <TabItem Header="install_agent.ps1 (PowerShell)" Foreground="{StaticResource TextPrimary}">
+                    <!-- BAT Tab (Primary Single File) -->
+                    <TabItem Header="pasang_agent_lab.bat (Single-File Standalone)" Foreground="{StaticResource TextPrimary}">
                         <Border Background="#090D16" CornerRadius="6" Margin="0,8,0,0" Padding="12">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                                <TextBox Text="{Binding Ps1Preview, Mode=OneWay}"
-                                         FontFamily="Consolas, monospace" FontSize="11" Foreground="#93C5FD"
+                                <TextBox Text="{Binding BatPreview, Mode=OneWay}"
+                                         FontFamily="Consolas, monospace" FontSize="11" Foreground="#FDE047"
                                          Background="Transparent" BorderThickness="0" IsReadOnly="True"/>
                             </ScrollViewer>
                         </Border>
                     </TabItem>
 
-                    <!-- BAT Tab -->
-                    <TabItem Header="install_agent.bat (Launcher)" Foreground="{StaticResource TextPrimary}">
+                    <!-- PS1 Tab -->
+                    <TabItem Header="install_agent.ps1 (PowerShell Payload)" Foreground="{StaticResource TextPrimary}">
                         <Border Background="#090D16" CornerRadius="6" Margin="0,8,0,0" Padding="12">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                                <TextBox Text="{Binding BatPreview, Mode=OneWay}"
-                                         FontFamily="Consolas, monospace" FontSize="11" Foreground="#FDE047"
+                                <TextBox Text="{Binding Ps1Preview, Mode=OneWay}"
+                                         FontFamily="Consolas, monospace" FontSize="11" Foreground="#93C5FD"
                                          Background="Transparent" BorderThickness="0" IsReadOnly="True"/>
                             </ScrollViewer>
                         </Border>

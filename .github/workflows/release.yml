@@ -1,0 +1,123 @@
+name: CD — Release Build & Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release Artifacts
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Determine Version Tag
+        id: vars
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Restore Dependencies
+        run: dotnet restore LabSupport.sln
+
+      - name: Publish Agent (win-x64, Self-Contained)
+        run: |
+          dotnet publish LabSupport.Agent/LabSupport.Agent.csproj `
+            -r win-x64 `
+            --self-contained true `
+            /p:PublishSingleFile=true `
+            -c Release `
+            -o ./publish/agent
+
+      - name: Publish Manager (win-x64, Self-Contained)
+        run: |
+          dotnet publish LabSupport.Manager/LabSupport.Manager.csproj `
+            -r win-x64 `
+            --self-contained true `
+            /p:PublishSingleFile=true `
+            -c Release `
+            -o ./publish/manager
+
+      - name: Bundle Manager Distribution Package
+        shell: pwsh
+        run: |
+          # Copy Agent executable and permissions setup script into Manager folder
+          if (Test-Path ./publish/agent/LabSupport.Agent.exe) {
+            Copy-Item ./publish/agent/LabSupport.Agent.exe -Destination ./publish/manager/LabSupport.Agent.exe -Force
+          }
+          if (Test-Path ./setup_manager_permissions.bat) {
+            Copy-Item ./setup_manager_permissions.bat -Destination ./publish/manager/setup_manager_permissions.bat -Force
+          }
+
+      - name: Create ZIP Archives
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.vars.outputs.tag }}"
+          Compress-Archive -Path ./publish/agent/* -DestinationPath "./LabSupport-Agent-${ver}.zip" -Force
+          Compress-Archive -Path ./publish/manager/* -DestinationPath "./LabSupport-Manager-${ver}.zip" -Force
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "LabSupport ${{ steps.vars.outputs.tag }}"
+          body: |
+            ## 🚀 LabSupport Release ${{ steps.vars.outputs.tag }}
+
+            Sistem Manajemen Laboratorium Komputer Berbasis Windows Native (100% Portable Tanpa Instalasi .NET).
+
+            ---
+
+            ### 📦 Paket Unduhan
+            | File | Ukuran | Kegunaan |
+            |---|---|---|
+            | `LabSupport-Agent-${{ steps.vars.outputs.tag }}.zip` | ~15 MB | Headless Windows Service untuk PC Laboratorium (Client) |
+            | `LabSupport-Manager-${{ steps.vars.outputs.tag }}.zip` | ~45 MB | WPF GUI Lengkap + Bundled Agent untuk PC Guru / Laboran |
+
+            ---
+
+            ### 🛠️ Panduan Memulai Cepat
+
+            #### 1. Untuk PC Laboran / Guru (Manager):
+            1. Ekstrak `LabSupport-Manager-${{ steps.vars.outputs.tag }}.zip` ke flash disk atau folder lokal.
+            2. Klik kanan `setup_manager_permissions.bat` dan pilih **Run as administrator** (cukup 1x setup firewall & URL ACL).
+            3. Jalankan `LabSupport.Manager.exe`.
+
+            #### 2. Untuk PC Siswa / Klien (Agent):
+            1. Buka aplikasi Manager, masuk ke menu **Generate Agent**.
+            2. Klik **Generate Paket Agent** (atau salin langsung dari paket Manager).
+            3. Jalankan `install_agent.bat` sebagai Administrator di PC Siswa.
+            4. Service akan otomatis aktif dan terhubung ke PC Manager.
+
+            ---
+
+            ### 📋 Kebutuhan Sistem
+            - Windows 10 / 11 (64-bit)
+            - Jaringan Local Area Network (LAN / Wi-Fi)
+            - **Tidak membutuhkan instalasi .NET Framework / Runtime** (sudah self-contained single-file).
+          files: |
+            LabSupport-Agent-*.zip
+            LabSupport-Manager-*.zip
+          draft: false
+          prerelease: false

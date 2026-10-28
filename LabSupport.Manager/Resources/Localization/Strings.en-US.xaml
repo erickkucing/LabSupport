@@ -44,12 +44,19 @@
 
     <!-- Generate Agent -->
     <sys:String x:Key="Str_GenTitle">Generate Agent &amp; Deployment Scripts</sys:String>
-    <sys:String x:Key="Str_GenDescription">Create automated deployment scripts (.bat &amp; .ps1) to run on Lab PCs without installation hassle.</sys:String>
-    <sys:String x:Key="Str_ManagerIpLabel">Manager PC IP Address:</sys:String>
+    <sys:String x:Key="Str_GenDescription">Create automated single-file deployment script (.bat) to run on Lab PCs without manual configuration.</sys:String>
+    <sys:String x:Key="Str_ManagerIpLabel">Manager PC IP Address (Physical LAN):</sys:String>
+    <sys:String x:Key="Str_ManagerIdLabel">Lab Pairing Code:</sys:String>
     <sys:String x:Key="Str_ManagerPortLabel">HTTP Server Port:</sys:String>
     <sys:String x:Key="Str_ServiceNameLabel">Windows Service Name:</sys:String>
     <sys:String x:Key="Str_OutputDirLabel">Output Directory:</sys:String>
-    <sys:String x:Key="Str_BtnGenerate">Generate Agent Package</sys:String>
+    <sys:String x:Key="Str_BtnGenerate">Generate Agent Folder Package</sys:String>
+    <sys:String x:Key="Str_BtnExportSingleBat">💾 Save Installer File (.bat)</sys:String>
+    <sys:String x:Key="Str_BtnRegenerateCode">🔄 Generate New</sys:String>
+    <sys:String x:Key="Str_CardNetworkIdentity">Network Status &amp; Lab Identity</sys:String>
+    <sys:String x:Key="Str_CardExportInstaller">Export Standalone Installer (1-Click)</sys:String>
+    <sys:String x:Key="Str_CardPracticalGuide">Practical Guide for Lab Technicians</sys:String>
+    <sys:String x:Key="Str_ExportInstallerToolbar">💾 Export Installer (.bat)</sys:String>
     <sys:String x:Key="Str_BatTab">Launcher (.bat)</sys:String>
     <sys:String x:Key="Str_Ps1Tab">Script (.ps1)</sys:String>
 
@@ -58,4 +65,117 @@
     <sys:String x:Key="Str_LangLabel">Display Language:</sys:String>
     <sys:String x:Key="Str_BtnSaveSettings">Save Settings</sys:String>
     <sys:String x:Key="Str_ActivityLogs">Activity History</sys:String>
+    <sys:String x:Key="Str_BtnExportLogs">📊 Export Logs CSV</sys:String>
+
+    <!-- Lab Control Features -->
+    <sys:String x:Key="Str_BtnLockAttention">🔒 Attention Lock</sys:String>
+    <sys:String x:Key="Str_BtnUnlockAttention">🔓 Unlock</sys:String>
+    <sys:String x:Key="Str_BtnMuteAll">🔇 Mute Audio</sys:String>
+    <sys:String x:Key="Str_BtnUnmuteAll">🔊 Unmute Audio</sys:String>
+    <sys:String x:Key="Str_BtnExamMode">📝 Exam Mode</sys:String>
+    <sys:String x:Key="Str_BtnDisableExamMode">End Exam</sys:String>
+    <sys:String x:Key="Str_BtnBlockUsb">🚫 Block USB</sys:String>
+    <sys:String x:Key="Str_BtnUnblockUsb">Unblock USB</sys:String>
+    <sys:String x:Key="Str_BtnBlockNet">🌐 Block Internet</sys:String>
+    <sys:String x:Key="Str_BtnUnblockNet">Unblock Internet</sys:String>
+    <sys:String x:Key="Str_BtnLaunchApp">🚀 Launch App/URL</sys:String>
+    <sys:String x:Key="Str_BtnDistributeFile">📤 Send File</sys:String>
+    <sys:String x:Key="Str_BtnCollectFiles">📥 Collect Files</sys:String>
+    <sys:String x:Key="Str_BtnAssignGroup">👥 Set Group</sys:String>
+    <sys:String x:Key="Str_BtnAssignRoom">📍 Set Room</sys:String>
+    <sys:String x:Key="Str_RoomCategory">Room Category</sys:String>
+    <sys:String x:Key="Str_AllRooms">All Rooms</sys:String>
+    <sys:String x:Key="Str_MultiLabBatExport">Multi-Lab .BAT Export</sys:String>
+    <sys:String x:Key="Str_BtnExportTelemetry">📊 Export CSV</sys:String>
+    <sys:String x:Key="Str_BtnStudentBroadcast">📺 Broadcast Student</sys:String>
+    <sys:String x:Key="Str_FloorPlanView">🗺️ Floor Plan</sys:String>
+    <sys:String x:Key="Str_GridView">🪟 Grid View</sys:String>
+    <sys:String x:Key="Str_AutoArrange">📐 Auto-Arrange Desks</sys:String>
+    <sys:String x:Key="Str_AppGuard">🛡️ App Guard</sys:String>
+    <sys:String x:Key="Str_AppGuardActive">🛡️ App Guard: ACTIVE</sys:String>
+    <sys:String x:Key="Str_ClipboardPush">📋 Send Clipboard</sys:String>
+    <sys:String x:Key="Str_DailyScheduler">⏰ Auto-Shutdown Schedule</sys:String>
+    <sys:String x:Key="Str_BtnWakeSingle">⚡ Turn On</sys:String>
+    <sys:String x:Key="Str_BtnCleanWorkspace">🧹 Clean Workspace</sys:String>
+
+    <!-- BIOS / WoL Checklist Guide -->
+    <sys:String x:Key="Str_CardBiosGuideTitle">⚙️ BIOS/UEFI Checklist for Wake-on-LAN</sys:String>
+    <sys:String x:Key="Str_CardBiosGuideBadge">Required 1x Setup</sys:String>
+    <sys:String x:Key="Str_CardBiosGuideDesc">To allow lab PCs to be powered on remotely when fully shut down, verify the following motherboard BIOS/UEFI settings:</sys:String>
+    <sys:String x:Key="Str_BiosItem1Title">1. Disable ErP / EuP Ready (CRITICAL)</sys:String>
+    <sys:String x:Key="Str_BiosItem1Desc">ErP cuts standby power to the LAN port when shut down. Change ErP/EuP to 'Disabled' so the ethernet LED stays active.</sys:String>
+    <sys:String x:Key="Str_BiosItem2Title">2. Enable 'Wake on LAN' / 'PCIe PME Event'</sys:String>
+    <sys:String x:Key="Str_BiosItem2Desc">Under the Power Management / ACPI BIOS menu, enable 'Power On by PCI-E/PME Device' or 'Resume by Onboard LAN'.</sys:String>
+    <sys:String x:Key="Str_BiosItem3Title">3. Verify Ethernet Port LED Status</sys:String>
+    <sys:String x:Key="Str_BiosItem3Desc">When the PC is shut down, verify that the rear RJ-45 LAN port LED remains lit/blinking, indicating the PHY chip is ready for Magic Packets.</sys:String>
+
+    <!-- Visual Script Builder & AI Assistant -->
+    <!-- Navigation & Mode Tabs -->
+    <sys:String x:Key="Str_TabVisualBuilder">🧩 Visual Builder (Beginner-Friendly)</sys:String>
+    <sys:String x:Key="Str_TabCodeEditor">💻 Code Editor (Manual)</sys:String>
+
+    <!-- AI Recipe Generation Bar -->
+    <sys:String x:Key="Str_BtnAiRecipe">🤖 Build Recipe with AI...</sys:String>
+    <sys:String x:Key="Str_AiPromptTitle">🤖 Lab Recipe AI Assistant (9router)</sys:String>
+    <sys:String x:Key="Str_AiPromptDesc">Describe lab requirements in plain words. AI will automatically assemble action cards:</sys:String>
+    <sys:String x:Key="Str_AiPromptPlaceholder">Example: Prepare PCs for biology exam: open bit.ly/bio-exam, lock USB, and mute audio.</sys:String>
+    <sys:String x:Key="Str_BtnGenerateWithAi">✨ Generate Recipe Now</sys:String>
+    <sys:String x:Key="Str_AiGeneratingStatus">⏳ Contacting 9router AI and building recipe... Please wait...</sys:String>
+    <sys:String x:Key="Str_AiMissingKeyWarning">⚠️ 9router API Key is not configured. Please open Settings.</sys:String>
+    <sys:String x:Key="Str_BtnGoToSettings">⚙️ Open Settings</sys:String>
+
+    <!-- Recipe Toolbars & Persistence -->
+    <sys:String x:Key="Str_BtnOpenRecipe">📂 Open Recipe (.json)</sys:String>
+    <sys:String x:Key="Str_BtnSaveRecipe">💾 Save Recipe (.json)</sys:String>
+    <sys:String x:Key="Str_BtnExportBat">📤 Export Standalone .BAT</sys:String>
+    <sys:String x:Key="Str_BtnClearRecipe">🗑️ Clear Recipe</sys:String>
+    <sys:String x:Key="Str_RecipePresets">📋 Ready-to-Use Recipe Presets:</sys:String>
+    <sys:String x:Key="Str_LiveScriptPreview">👁️ Live PowerShell Script Preview</sys:String>
+    <sys:String x:Key="Str_ActionSequenceTitle">Recipe Action Sequence (Execution Order):</sys:String>
+
+    <!-- Action Catalog Categories & Buttons -->
+    <sys:String x:Key="Str_AddAction">➕ Add Action:</sys:String>
+    <sys:String x:Key="Str_ActionClearTemp">🧹 Clean Temp &amp; Cache</sys:String>
+    <sys:String x:Key="Str_ActionFlushDns">🌐 Flush DNS &amp; IP</sys:String>
+    <sys:String x:Key="Str_ActionLaunchExe">🚀 Launch .EXE File</sys:String>
+    <sys:String x:Key="Str_ActionInstallWinget">📦 Install Software (Winget)</sys:String>
+    <sys:String x:Key="Str_ActionKillProcess">🛑 Kill App/Process</sys:String>
+    <sys:String x:Key="Str_ActionLockUsb">🔒 Lock/Unlock USB Ports</sys:String>
+    <sys:String x:Key="Str_ActionOpenUrl">🌍 Open Link in Browser</sys:String>
+    <sys:String x:Key="Str_ActionSetVolume">🔊 Set Audio Volume</sys:String>
+    <sys:String x:Key="Str_ActionSetWallpaper">🖼️ Set Desktop Wallpaper</sys:String>
+    <sys:String x:Key="Str_ActionShutdownRestart">⚡ Shutdown / Restart PC</sys:String>
+    <sys:String x:Key="Str_ActionLogoff">👤 Logoff User</sys:String>
+    <sys:String x:Key="Str_ActionCustomPowerShell">💻 Custom PowerShell Script</sys:String>
+
+    <!-- Parameter Form Fields -->
+    <sys:String x:Key="Str_ExePath">Executable File Path (.exe):</sys:String>
+    <sys:String x:Key="Str_ExeArgs">Arguments / Parameters (Optional):</sys:String>
+    <sys:String x:Key="Str_ExeMode">Executable Launch Mode:</sys:String>
+    <sys:String x:Key="Str_ExeModeInteractive">🖥️ Student Screen (Interactive Without UAC)</sys:String>
+    <sys:String x:Key="Str_ExeModeInteractiveTip">App appears on student desktop with Admin rights via on-demand Scheduled Task.</sys:String>
+    <sys:String x:Key="Str_ExeModeBackground">⚙️ Background (Silent Admin)</sys:String>
+    <sys:String x:Key="Str_ExeModeBackgroundTip">Runs silently in background without showing windows on student desktop.</sys:String>
+    <sys:String x:Key="Str_BtnBrowseExe">Browse .exe...</sys:String>
+    <sys:String x:Key="Str_PackageId">Winget Package ID (e.g. Google.Chrome):</sys:String>
+    <sys:String x:Key="Str_ProcessName">Process Name (e.g. chrome,roblox):</sys:String>
+    <sys:String x:Key="Str_TargetUrl">Target Web URL (e.g. https://...):</sys:String>
+    <sys:String x:Key="Str_UsbStatus">USB Port Status:</sys:String>
+    <sys:String x:Key="Str_UsbLock">Lock USB (Read-Only / Block)</sys:String>
+    <sys:String x:Key="Str_UsbUnlock">Unlock USB (Normal Access)</sys:String>
+    <sys:String x:Key="Str_VolumeLevel">Volume Level (0 - 100%):</sys:String>
+    <sys:String x:Key="Str_MuteAudio">Mute Completely</sys:String>
+    <sys:String x:Key="Str_ShutdownAction">Power Action:</sys:String>
+    <sys:String x:Key="Str_Shutdown">Shutdown PC</sys:String>
+    <sys:String x:Key="Str_Restart">Restart PC</sys:String>
+    <sys:String x:Key="Str_DelaySeconds">Delay (seconds):</sys:String>
+    <sys:String x:Key="Str_ForceClose">Force Close Open Apps</sys:String>
+
+    <!-- Settings 9router Configuration -->
+    <sys:String x:Key="Str_AiSettingsTitle">🤖 AI Assistant Integration (9router)</sys:String>
+    <sys:String x:Key="Str_AiSettingsDesc">Configure 9router / OpenAI-Compatible endpoint for automated natural language lab recipe generation.</sys:String>
+    <sys:String x:Key="Str_AiBaseUrl">9router / API Base URL:</sys:String>
+    <sys:String x:Key="Str_AiApiKey">9router API Key:</sys:String>
+    <sys:String x:Key="Str_AiModel">AI Model:</sys:String>
+    <sys:String x:Key="Str_BtnTestAiConnection">🔌 Test AI Connection</sys:String>
 </ResourceDictionary>

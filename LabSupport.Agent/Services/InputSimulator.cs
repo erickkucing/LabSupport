@@ -184,6 +184,7 @@ public class InputSimulator
                         }
                         break;
 
+                    case "WIN+L":
                     case "LOCK":
                     case "CTRL+ALT+DEL":
                         LockWorkStation();
@@ -210,6 +211,15 @@ public class InputSimulator
             {
                 foreach (char c in payload.Text)
                 {
+                    if (c == '\r') continue;
+                    if (c == '\n')
+                    {
+                        keybd_event(VK_RETURN, 0, 0, UIntPtr.Zero);
+                        keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        Thread.Sleep(5);
+                        continue;
+                    }
+
                     keybd_event(0, (byte)c, KEYEVENTF_UNICODE, UIntPtr.Zero);
                     keybd_event(0, (byte)c, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, UIntPtr.Zero);
                     Thread.Sleep(5);

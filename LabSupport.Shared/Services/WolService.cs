@@ -13,14 +13,14 @@ public class WolService
         _databaseService = databaseService;
     }
 
-    public async Task<bool> WakeComputerAsync(string hostname, string macAddress)
+    public async Task<bool> WakeComputerAsync(string hostname, string macAddress, string? targetIp = null)
     {
         try
         {
-            await WolHelper.SendMagicPacketAsync(macAddress);
+            await WolHelper.SendMagicPacketAsync(macAddress, targetIp: targetIp);
             if (_databaseService != null)
             {
-                await _databaseService.LogActivityAsync(hostname, "Wake-on-LAN", $"Sent magic packet to MAC {macAddress}", true);
+                await _databaseService.LogActivityAsync(hostname, "Wake-on-LAN", $"Sent magic packet burst to MAC {macAddress} (Target: {targetIp ?? "Broadcast"})", true);
             }
             return true;
         }

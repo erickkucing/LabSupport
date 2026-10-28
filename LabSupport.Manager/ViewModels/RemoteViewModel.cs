@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using LabSupport.Manager.Models;
+using LabSupport.Shared.Models;
 using LabSupport.Shared.Services;
 using LabSupport.Shared.Protocol;
 using RemoteMouseAction = LabSupport.Shared.Protocol.MouseAction;
@@ -17,6 +18,7 @@ public class RemoteViewModel : ViewModelBase, IDisposable
 {
     private readonly AgentCommandService _commandService;
     private readonly HttpClient _httpClient;
+    private readonly HttpFileServer? _httpFileServer;
     private CancellationTokenSource? _streamCts;
     private Task? _streamLoopTask;
 
@@ -94,11 +96,15 @@ public class RemoteViewModel : ViewModelBase, IDisposable
     public ICommand SaveScreenshotCommand { get; }
     public ICommand SendShortcutCommand { get; }
     public ICommand SendTypingTextCommand { get; }
+    public ICommand SendFileOrFolderCommand { get; }
 
-    public RemoteViewModel(AgentCommandService commandService, HttpClient? httpClient = null)
+    public Func<FileDistributionOptions?>? FileDistributionDialogHandler { get; set; }
+
+    public RemoteViewModel(AgentCommandService commandService, HttpClient? httpClient = null, HttpFileServer? httpFileServer = null)
     {
         _commandService = commandService;
         _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        _httpFileServer = httpFileServer;
 
         ToggleConnectCommand = new AsyncRelayCommand(ToggleConnectAsync);
         SendLockCommand = new AsyncRelayCommand(SendLockAsync);
@@ -108,6 +114,7 @@ public class RemoteViewModel : ViewModelBase, IDisposable
         SaveScreenshotCommand = new RelayCommand(SaveScreenshot);
         SendShortcutCommand = new AsyncRelayCommand(p => SendShortcutAsync(p?.ToString() ?? ""));
         SendTypingTextCommand = new AsyncRelayCommand(SendTypingTextAsync);
+        SendFileOrFolderCommand = new AsyncRelayCommand(SendFileOrFolderInteractiveAsync);
     }
 
     private async Task ToggleConnectAsync()
@@ -269,33 +276,132 @@ public class RemoteViewModel : ViewModelBase, IDisposable
         TypingText = string.Empty;
     }
 
-    public async Task<bool> SendFileAsync(string localFilePath, string? targetDirectory = null)
+    public async Task<bool> SendFileAsync(
+        string localFilePath,
+        string? targetDirectory = null,
+        string? customSubfolder = null,
+        bool autoOpen = false,
+        bool showNotification = true,
+        bool overwrite = true)
     {
-        if (TargetComputer == null || !File.Exists(localFilePath)) return false;
-
-        try
-        {
-            byte[] fileBytes = await File.ReadAllBytesAsync(localFilePath);
-            var payload = new FileTransferPayload
-            {
-                FileName = Path.GetFileName(localFilePath),
-                TargetDirectory = targetDirectory,
-                ContentBase64 = Convert.ToBase64String(fileBytes)
-            };
-
-            var cmd = new CommandMessage
-            {
-                Type = CommandType.UploadFile,
-                Payload = MessageSerializer.Serialize(payload)
-            };
-
-            var resp = await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: 30000);
-            return resp.Success;
-        }
-        catch
+        if (TargetComputer == null || (!File.Exists(localFilePath) && !Directory.Exists(localFilePath)))
         {
             return false;
         }
+
+        bool isDir = Directory.Exists(localFilePath);
+
+        if (_httpFileServer != null)
+        {
+            FileTransferSession? session = null;
+            try
+            {
+                session = FileDistributionService.CreateSession(localFilePath, isDir);
+                _httpFileServer.RegisterFileSession(session);
+
+                string localIp = NetworkHelper.GetPrimaryLanIPv4Address();
+                string downloadUrl = $"http://{localIp}:{_httpFileServer.Port}/files/download/{session.Token}";
+
+                var payload = new FileDistributionPayload
+                {
+                    TransferToken = session.Token,
+                    DownloadUrl = downloadUrl,
+                    ItemName = session.FileName,
+                    IsDirectory = session.IsDirectory,
+                    TargetDirectory = targetDirectory ?? "Desktop",
+                    CustomSubfolder = customSubfolder ?? string.Empty,
+                    ChecksumSha256 = session.Sha256Hash,
+                    FileSizeBytes = session.FileSize,
+                    AutoOpen = autoOpen,
+                    ShowNotification = showNotification,
+                    Overwrite = overwrite
+                };
+
+                var cmd = new CommandMessage
+                {
+                    Type = CommandType.DownloadAndDeployFile,
+                    Payload = MessageSerializer.Serialize(payload)
+                };
+
+                int timeoutMs = Math.Max(60000, (int)(session.FileSize / (1024 * 1024) * 2000) + 60000);
+                var resp = await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: timeoutMs);
+                return resp.Success;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (session != null)
+                {
+                    _httpFileServer.UnregisterFileSession(session.Token);
+                }
+            }
+        }
+        else
+        {
+            if (isDir) return false;
+
+            try
+            {
+                byte[] fileBytes = await File.ReadAllBytesAsync(localFilePath);
+                var payload = new FileTransferPayload
+                {
+                    FileName = Path.GetFileName(localFilePath),
+                    TargetDirectory = targetDirectory,
+                    ContentBase64 = Convert.ToBase64String(fileBytes)
+                };
+
+                var cmd = new CommandMessage
+                {
+                    Type = CommandType.UploadFile,
+                    Payload = MessageSerializer.Serialize(payload)
+                };
+
+                var resp = await _commandService.SendCommandAsync(TargetComputer.IpAddress, cmd, timeoutMs: 30000);
+                return resp.Success;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public async Task SendFileOrFolderInteractiveAsync()
+    {
+        if (TargetComputer == null || !TargetComputer.IsOnline)
+        {
+            ConnectionStatus = "PC target offline atau belum dipilih.";
+            return;
+        }
+
+        FileDistributionOptions? options = null;
+        if (FileDistributionDialogHandler != null)
+        {
+            options = FileDistributionDialogHandler();
+        }
+        else
+        {
+            options = FileDistributionDialogHelper.ShowDialog();
+        }
+
+        if (options == null || string.IsNullOrWhiteSpace(options.SourcePath)) return;
+
+        ConnectionStatus = $"Mengirim {options.ItemName} ke {TargetComputer.Hostname}...";
+
+        bool success = await SendFileAsync(
+            options.SourcePath,
+            options.TargetDirectory,
+            options.CustomSubfolder,
+            options.AutoOpen,
+            options.ShowNotification,
+            options.Overwrite);
+
+        ConnectionStatus = success
+            ? $"Berhasil mengirim {options.ItemName} ke {TargetComputer.Hostname}."
+            : $"Gagal mengirim {options.ItemName} ke {TargetComputer.Hostname}.";
     }
 
     private async Task SendLockAsync()

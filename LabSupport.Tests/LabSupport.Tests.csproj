@@ -17,4 +17,9 @@
     <ProjectReference Include="..\LabSupport.Shared\LabSupport.Shared.csproj" />
     <ProjectReference Include="..\LabSupport.Agent\LabSupport.Agent.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

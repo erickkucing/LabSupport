@@ -55,6 +55,7 @@
 
                 <!-- Right: Remote Control Actions -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="📁 Kirim Berkas" Command="{Binding SendFileOrFolderCommand}" Style="{StaticResource SecondaryButton}" Padding="10,6" FontSize="12" Margin="0,0,6,0" ToolTip="Kirim file atau folder ke PC siswa dengan streaming performa tinggi"/>
                     <Button Content="{DynamicResource Str_BtnScreenshot}" Command="{Binding SaveScreenshotCommand}" Style="{StaticResource SecondaryButton}" Padding="10,6" FontSize="12" Margin="0,0,6,0"/>
                     <Button Content="{DynamicResource Str_BtnLock}" Command="{Binding SendLockCommand}" Style="{StaticResource SecondaryButton}" Padding="10,6" FontSize="12" Margin="0,0,6,0"/>
                     <Button Content="{DynamicResource Str_BtnRestart}" Command="{Binding SendRestartCommand}" Style="{StaticResource SecondaryButton}" Padding="10,6" FontSize="12" Margin="0,0,6,0"/>

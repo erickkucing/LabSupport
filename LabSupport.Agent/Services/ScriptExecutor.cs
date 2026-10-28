@@ -20,51 +20,12 @@ public class ScriptExecutor
 
         try
         {
-            string fileName;
-            string arguments;
-
             bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
             var utf8NoBom = new UTF8Encoding(false);
-
-            if (payload.Type == ScriptType.PowerShell)
-            {
-                tempFile = Path.Combine(Path.GetTempPath(), $"lab_script_{Guid.NewGuid():N}.ps1");
-                await File.WriteAllTextAsync(tempFile, payload.ScriptContent, utf8NoBom, cancellationToken);
-
-                if (isWindows)
-                {
-                    fileName = "powershell.exe";
-                    arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{tempFile}\"";
-                }
-                else
-                {
-                    fileName = "pwsh";
-                    arguments = $"-NoProfile -NonInteractive -File \"{tempFile}\"";
-                }
-            }
-            else // Batch
-            {
-                if (isWindows)
-                {
-                    tempFile = Path.Combine(Path.GetTempPath(), $"lab_script_{Guid.NewGuid():N}.bat");
-                    await File.WriteAllTextAsync(tempFile, payload.ScriptContent, Encoding.Default, cancellationToken);
-                    fileName = "cmd.exe";
-                    arguments = $"/c \"{tempFile}\"";
-                }
-                else
-                {
-                    tempFile = Path.Combine(Path.GetTempPath(), $"lab_script_{Guid.NewGuid():N}.sh");
-                    await File.WriteAllTextAsync(tempFile, payload.ScriptContent, utf8NoBom, cancellationToken);
-                    fileName = "sh";
-                    arguments = $"\"{tempFile}\"";
-                }
-            }
+            string scriptContent = payload.ScriptContent ?? string.Empty;
 
             var psi = new ProcessStartInfo
             {
-                FileName = fileName,
-                Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -73,10 +34,54 @@ public class ScriptExecutor
                 StandardErrorEncoding = Encoding.UTF8
             };
 
+            if (payload.Type == ScriptType.PowerShell)
+            {
+                tempFile = Path.Combine(Path.GetTempPath(), $"lab_script_{Guid.NewGuid():N}.ps1");
+                await File.WriteAllTextAsync(tempFile, scriptContent, utf8NoBom, cancellationToken);
+
+                if (isWindows)
+                {
+                    psi.FileName = "powershell.exe";
+                    psi.ArgumentList.Add("-NoProfile");
+                    psi.ArgumentList.Add("-NonInteractive");
+                    psi.ArgumentList.Add("-ExecutionPolicy");
+                    psi.ArgumentList.Add("Bypass");
+                    psi.ArgumentList.Add("-File");
+                    psi.ArgumentList.Add(tempFile);
+                }
+                else
+                {
+                    psi.FileName = "pwsh";
+                    psi.ArgumentList.Add("-NoProfile");
+                    psi.ArgumentList.Add("-NonInteractive");
+                    psi.ArgumentList.Add("-File");
+                    psi.ArgumentList.Add(tempFile);
+                }
+            }
+            else // Batch
+            {
+                if (isWindows)
+                {
+                    tempFile = Path.Combine(Path.GetTempPath(), $"lab_script_{Guid.NewGuid():N}.bat");
+                    await File.WriteAllTextAsync(tempFile, scriptContent, Encoding.Default, cancellationToken);
+                    psi.FileName = "cmd.exe";
+                    // Explicit double quoting required by cmd.exe /c for paths with spaces
+                    psi.Arguments = $"/c \"\"{tempFile}\"\"";
+                }
+                else
+                {
+                    tempFile = Path.Combine(Path.GetTempPath(), $"lab_script_{Guid.NewGuid():N}.sh");
+                    await File.WriteAllTextAsync(tempFile, scriptContent, utf8NoBom, cancellationToken);
+                    psi.FileName = "sh";
+                    psi.ArgumentList.Add(tempFile);
+                }
+            }
+
             using var process = new Process { StartInfo = psi };
             process.Start();
 
-            int timeoutMs = Math.Max(1000, payload.TimeoutSeconds * 1000);
+            int timeoutSeconds = Math.Clamp(payload.TimeoutSeconds <= 0 ? 30 : payload.TimeoutSeconds, 1, 3600);
+            int timeoutMs = timeoutSeconds * 1000;
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(timeoutMs);
 

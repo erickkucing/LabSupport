@@ -44,12 +44,19 @@
 
     <!-- Generate Agent -->
     <sys:String x:Key="Str_GenTitle">Generate File Agent &amp; Script Deploy</sys:String>
-    <sys:String x:Key="Str_GenDescription">Buat script otomatisasi (.bat &amp; .ps1) untuk dijalankan di PC Laboratorium tanpa perlu instalasi rumit.</sys:String>
-    <sys:String x:Key="Str_ManagerIpLabel">IP Address PC Manajemen:</sys:String>
+    <sys:String x:Key="Str_GenDescription">Buat script otomatisasi (.bat single-file) untuk dijalankan di PC Laboratorium tanpa perlu konfigurasi manual.</sys:String>
+    <sys:String x:Key="Str_ManagerIpLabel">IP Address PC Manajemen (LAN Fisik):</sys:String>
+    <sys:String x:Key="Str_ManagerIdLabel">Kode Unik Lab (Pairing Code):</sys:String>
     <sys:String x:Key="Str_ManagerPortLabel">Port HTTP Server:</sys:String>
     <sys:String x:Key="Str_ServiceNameLabel">Nama Windows Service:</sys:String>
     <sys:String x:Key="Str_OutputDirLabel">Direktori Output:</sys:String>
-    <sys:String x:Key="Str_BtnGenerate">Generate Paket Agent</sys:String>
+    <sys:String x:Key="Str_BtnGenerate">Generate Folder Paket Agent</sys:String>
+    <sys:String x:Key="Str_BtnExportSingleBat">💾 Simpan File Installer (.bat)</sys:String>
+    <sys:String x:Key="Str_BtnRegenerateCode">🔄 Buat Baru</sys:String>
+    <sys:String x:Key="Str_CardNetworkIdentity">Status Jaringan &amp; Identitas Lab</sys:String>
+    <sys:String x:Key="Str_CardExportInstaller">Ekspor File Installer Mandiri (1-Click)</sys:String>
+    <sys:String x:Key="Str_CardPracticalGuide">Panduan Praktis untuk Laboran</sys:String>
+    <sys:String x:Key="Str_ExportInstallerToolbar">💾 Export Installer (.bat)</sys:String>
     <sys:String x:Key="Str_BatTab">Launcher (.bat)</sys:String>
     <sys:String x:Key="Str_Ps1Tab">Script (.ps1)</sys:String>
 
@@ -58,4 +65,117 @@
     <sys:String x:Key="Str_LangLabel">Bahasa Tampilan:</sys:String>
     <sys:String x:Key="Str_BtnSaveSettings">Simpan Pengaturan</sys:String>
     <sys:String x:Key="Str_ActivityLogs">Riwayat Aktivitas</sys:String>
+    <sys:String x:Key="Str_BtnExportLogs">📊 Ekspor Log CSV</sys:String>
+
+    <!-- Lab Control Features -->
+    <sys:String x:Key="Str_BtnLockAttention">🔒 Perhatikan Guru</sys:String>
+    <sys:String x:Key="Str_BtnUnlockAttention">🔓 Buka Kunci</sys:String>
+    <sys:String x:Key="Str_BtnMuteAll">🔇 Mute Audio</sys:String>
+    <sys:String x:Key="Str_BtnUnmuteAll">🔊 Unmute Audio</sys:String>
+    <sys:String x:Key="Str_BtnExamMode">📝 Mode Ujian</sys:String>
+    <sys:String x:Key="Str_BtnDisableExamMode">Batal Ujian</sys:String>
+    <sys:String x:Key="Str_BtnBlockUsb">🚫 Blokir USB</sys:String>
+    <sys:String x:Key="Str_BtnUnblockUsb">Buka USB</sys:String>
+    <sys:String x:Key="Str_BtnBlockNet">🌐 Blokir Internet</sys:String>
+    <sys:String x:Key="Str_BtnUnblockNet">Buka Internet</sys:String>
+    <sys:String x:Key="Str_BtnLaunchApp">🚀 Jalankan App/URL</sys:String>
+    <sys:String x:Key="Str_BtnDistributeFile">📤 Kirim File</sys:String>
+    <sys:String x:Key="Str_BtnCollectFiles">📥 Kumpul Tugas</sys:String>
+    <sys:String x:Key="Str_BtnAssignGroup">👥 Atur Grup</sys:String>
+    <sys:String x:Key="Str_BtnAssignRoom">📍 Atur Ruang</sys:String>
+    <sys:String x:Key="Str_RoomCategory">Kategori Ruang</sys:String>
+    <sys:String x:Key="Str_AllRooms">Semua Ruang</sys:String>
+    <sys:String x:Key="Str_MultiLabBatExport">Ekspor File .BAT Multi-Lab</sys:String>
+    <sys:String x:Key="Str_BtnExportTelemetry">📊 Ekspor CSV</sys:String>
+    <sys:String x:Key="Str_BtnStudentBroadcast">📺 Siarkan Siswa</sys:String>
+    <sys:String x:Key="Str_FloorPlanView">🗺️ Denah Meja</sys:String>
+    <sys:String x:Key="Str_GridView">🪟 Grid View</sys:String>
+    <sys:String x:Key="Str_AutoArrange">📐 Susun Meja Otomatis</sys:String>
+    <sys:String x:Key="Str_AppGuard">🛡️ App Guard</sys:String>
+    <sys:String x:Key="Str_AppGuardActive">🛡️ App Guard: AKTIF</sys:String>
+    <sys:String x:Key="Str_ClipboardPush">📋 Kirim Clipboard</sys:String>
+    <sys:String x:Key="Str_DailyScheduler">⏰ Jadwal Auto-Shutdown</sys:String>
+    <sys:String x:Key="Str_BtnWakeSingle">⚡ Nyalakan</sys:String>
+    <sys:String x:Key="Str_BtnCleanWorkspace">🧹 Bersihkan Workspace</sys:String>
+
+    <!-- BIOS / WoL Checklist Guide -->
+    <sys:String x:Key="Str_CardBiosGuideTitle">⚙️ Panduan BIOS/UEFI untuk Wake-on-LAN</sys:String>
+    <sys:String x:Key="Str_CardBiosGuideBadge">Wajib 1x Setup</sys:String>
+    <sys:String x:Key="Str_CardBiosGuideDesc">Agar komputer lab bisa dibangunkan dari jarak jauh saat mati total, pastikan pengaturan berikut di BIOS/UEFI motherboard:</sys:String>
+    <sys:String x:Key="Str_BiosItem1Title">1. Nonaktifkan ErP / EuP Ready (PENTING)</sys:String>
+    <sys:String x:Key="Str_BiosItem1Desc">ErP mematikan daya standby port LAN saat PC mati. Ubah ErP/EuP ke 'Disabled' agar lampu LED port ethernet tetap menyala saat PC shutdown.</sys:String>
+    <sys:String x:Key="Str_BiosItem2Title">2. Aktifkan 'Wake on LAN' / 'PCIe PME Event'</sys:String>
+    <sys:String x:Key="Str_BiosItem2Desc">Di menu Power Management / ACPI BIOS, aktifkan opsi 'Power On by PCI-E/PME Device' atau 'Resume by Onboard LAN'.</sys:String>
+    <sys:String x:Key="Str_BiosItem3Title">3. Verifikasi Lampu LED Port Ethernet</sys:String>
+    <sys:String x:Key="Str_BiosItem3Desc">Saat PC dimatikan, perhatikan bagian belakang PC: lampu port kabel LAN harus tetap menyala/berkedip menandakan chip LAN siap menerima Magic Packet.</sys:String>
+
+    <!-- Visual Script Builder & AI Assistant -->
+    <!-- Navigation & Mode Tabs -->
+    <sys:String x:Key="Str_TabVisualBuilder">🧩 Visual Builder (Ramah Pemula)</sys:String>
+    <sys:String x:Key="Str_TabCodeEditor">💻 Editor Kode (Manual)</sys:String>
+
+    <!-- AI Recipe Generation Bar -->
+    <sys:String x:Key="Str_BtnAiRecipe">🤖 Buat Resep dengan AI...</sys:String>
+    <sys:String x:Key="Str_AiPromptTitle">🤖 Asisten AI Penyusun Resep Lab (9router)</sys:String>
+    <sys:String x:Key="Str_AiPromptDesc">Ketik instruksi lab dalam bahasa sehari-hari. AI akan menyusun kartu aksi otomatis:</sys:String>
+    <sys:String x:Key="Str_AiPromptPlaceholder">Contoh: Siapkan PC untuk ujian biologi: buka bit.ly/ujian-bio, kunci USB, dan matikan suara komputer.</sys:String>
+    <sys:String x:Key="Str_BtnGenerateWithAi">✨ Susun Resep Sekarang</sys:String>
+    <sys:String x:Key="Str_AiGeneratingStatus">⏳ Menghubungi 9router AI dan menyusun resep... Mohon tunggu...</sys:String>
+    <sys:String x:Key="Str_AiMissingKeyWarning">⚠️ API Key 9router belum dikonfigurasi. Silakan buka menu Pengaturan.</sys:String>
+    <sys:String x:Key="Str_BtnGoToSettings">⚙️ Buka Pengaturan</sys:String>
+
+    <!-- Recipe Toolbars & Persistence -->
+    <sys:String x:Key="Str_BtnOpenRecipe">📂 Buka Resep (.json)</sys:String>
+    <sys:String x:Key="Str_BtnSaveRecipe">💾 Simpan Resep (.json)</sys:String>
+    <sys:String x:Key="Str_BtnExportBat">📤 Ekspor .BAT Mandiri</sys:String>
+    <sys:String x:Key="Str_BtnClearRecipe">🗑️ Kosongkan Resep</sys:String>
+    <sys:String x:Key="Str_RecipePresets">📋 Template Resep Siap Pakai:</sys:String>
+    <sys:String x:Key="Str_LiveScriptPreview">👁️ Pratinjau Kode PowerShell (Live)</sys:String>
+    <sys:String x:Key="Str_ActionSequenceTitle">Daftar Langkah Resep (Urutan Eksekusi):</sys:String>
+
+    <!-- Action Catalog Categories & Buttons -->
+    <sys:String x:Key="Str_AddAction">➕ Tambah Aksi:</sys:String>
+    <sys:String x:Key="Str_ActionClearTemp">🧹 Bersihkan Cache &amp; Temp</sys:String>
+    <sys:String x:Key="Str_ActionFlushDns">🌐 Flush DNS &amp; IP</sys:String>
+    <sys:String x:Key="Str_ActionLaunchExe">🚀 Jalankan File .EXE</sys:String>
+    <sys:String x:Key="Str_ActionInstallWinget">📦 Install Software (Winget)</sys:String>
+    <sys:String x:Key="Str_ActionKillProcess">🛑 Matikan Aplikasi/Proses</sys:String>
+    <sys:String x:Key="Str_ActionLockUsb">🔒 Kunci/Buka Port USB</sys:String>
+    <sys:String x:Key="Str_ActionOpenUrl">🌍 Buka Link di Browser</sys:String>
+    <sys:String x:Key="Str_ActionSetVolume">🔊 Atur Volume Audio</sys:String>
+    <sys:String x:Key="Str_ActionSetWallpaper">🖼️ Ganti Wallpaper</sys:String>
+    <sys:String x:Key="Str_ActionShutdownRestart">⚡ Matikan / Restart PC</sys:String>
+    <sys:String x:Key="Str_ActionLogoff">👤 Logoff Pengguna</sys:String>
+    <sys:String x:Key="Str_ActionCustomPowerShell">💻 Script PowerShell Kustom</sys:String>
+
+    <!-- Parameter Form Fields -->
+    <sys:String x:Key="Str_ExePath">Path File Executable (.exe):</sys:String>
+    <sys:String x:Key="Str_ExeArgs">Argumen / Parameter (Opsional):</sys:String>
+    <sys:String x:Key="Str_ExeMode">Mode Eksekusi Executable:</sys:String>
+    <sys:String x:Key="Str_ExeModeInteractive">🖥️ Layar Siswa (Interactive Tanpa UAC)</sys:String>
+    <sys:String x:Key="Str_ExeModeInteractiveTip">Aplikasi langsung muncul di desktop siswa dengan hak Admin via Scheduled Task on-demand.</sys:String>
+    <sys:String x:Key="Str_ExeModeBackground">⚙️ Background (Silent Admin)</sys:String>
+    <sys:String x:Key="Str_ExeModeBackgroundTip">Berjalan di latar belakang tanpa jendela di layar siswa.</sys:String>
+    <sys:String x:Key="Str_BtnBrowseExe">Cari .exe...</sys:String>
+    <sys:String x:Key="Str_PackageId">ID Paket Winget (cth: Google.Chrome):</sys:String>
+    <sys:String x:Key="Str_ProcessName">Nama Proses (cth: chrome,roblox):</sys:String>
+    <sys:String x:Key="Str_TargetUrl">Alamat URL Web (cth: https://...):</sys:String>
+    <sys:String x:Key="Str_UsbStatus">Status Port USB:</sys:String>
+    <sys:String x:Key="Str_UsbLock">Kunci USB (Read-Only / Blokir)</sys:String>
+    <sys:String x:Key="Str_UsbUnlock">Buka Akses USB (Normal)</sys:String>
+    <sys:String x:Key="Str_VolumeLevel">Tingkat Volume (0 - 100%):</sys:String>
+    <sys:String x:Key="Str_MuteAudio">Bisukan Total (Mute)</sys:String>
+    <sys:String x:Key="Str_ShutdownAction">Tindakan Daya:</sys:String>
+    <sys:String x:Key="Str_Shutdown">Matikan PC (Shutdown)</sys:String>
+    <sys:String x:Key="Str_Restart">Restart PC</sys:String>
+    <sys:String x:Key="Str_DelaySeconds">Jeda Waktu (detik):</sys:String>
+    <sys:String x:Key="Str_ForceClose">Paksa Tutup Aplikasi</sys:String>
+
+    <!-- Settings 9router Configuration -->
+    <sys:String x:Key="Str_AiSettingsTitle">🤖 Integrasi AI Assistant (9router)</sys:String>
+    <sys:String x:Key="Str_AiSettingsDesc">Konfigurasi endpoint 9router / OpenAI-Compatible untuk pembuatan resep otomatis berbasis bahasa alami.</sys:String>
+    <sys:String x:Key="Str_AiBaseUrl">Base URL 9router / API:</sys:String>
+    <sys:String x:Key="Str_AiApiKey">API Key 9router:</sys:String>
+    <sys:String x:Key="Str_AiModel">Model AI:</sys:String>
+    <sys:String x:Key="Str_BtnTestAiConnection">🔌 Uji Koneksi AI</sys:String>
 </ResourceDictionary>

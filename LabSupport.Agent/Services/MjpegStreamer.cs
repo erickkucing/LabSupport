@@ -117,6 +117,29 @@ public class MjpegStreamer : IDisposable
                 try { context.Response.Close(); } catch { }
             }
         }
+        else if (path == "/view")
+        {
+            string html = @"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'/>
+    <title>Student Screen Stream</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        img { width: 100%; height: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+    <img src='/stream' alt='Student Screen Stream'/>
+</body>
+</html>";
+            byte[] htmlBytes = Encoding.UTF8.GetBytes(html);
+            context.Response.StatusCode = 200;
+            context.Response.ContentType = "text/html; charset=utf-8";
+            context.Response.ContentLength64 = htmlBytes.Length;
+            await context.Response.OutputStream.WriteAsync(htmlBytes, 0, htmlBytes.Length, token);
+            context.Response.Close();
+        }
         else
         {
             context.Response.StatusCode = 404;
